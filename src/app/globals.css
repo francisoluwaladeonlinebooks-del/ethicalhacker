@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ficap-bg: #f5f6f8;
+  --ficap-surface: #ffffff;
+  --ficap-border: #e3e6ec;
+  --ficap-text: #182134;
+  --ficap-muted: #5b6577;
+  --ficap-navy: #0d1a2c;
+  --ficap-accent: #0f766e;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-[var(--ficap-bg)] text-[var(--ficap-text)] antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+}
+
+*:focus-visible {
+  @apply outline-none ring-2 ring-seal-600 ring-offset-2 ring-offset-white;
+}
+
+::selection {
+  @apply bg-navy-200 text-navy-900;
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-[var(--ficap-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)];
+  }
+  .card-header {
+    @apply flex flex-wrap items-start justify-between gap-3 border-b border-[var(--ficap-border)] px-4 py-3;
+  }
+  .card-title {
+    @apply text-sm font-semibold tracking-tight text-navy-900;
+  }
+  .card-subtitle {
+    @apply mt-0.5 text-xs text-[var(--ficap-muted)];
+  }
+  .card-body {
+    @apply px-4 py-3;
+  }
+  .label {
+    @apply block text-2xs font-semibold uppercase tracking-wider text-[var(--ficap-muted)];
+  }
+  .input,
+  .select,
+  .textarea {
+    @apply w-full rounded-md border border-[#cfd5df] bg-white px-2.5 py-1.5 text-sm text-[var(--ficap-text)] shadow-sm placeholder:text-[#96a0b0] focus:border-seal-600 focus:outline-none focus:ring-1 focus:ring-seal-600 disabled:cursor-not-allowed disabled:bg-slate-50;
+  }
+  .textarea {
+    @apply min-h-[80px] leading-relaxed;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border-navy-800 bg-navy-800 text-white hover:bg-navy-900;
+  }
+  .btn-secondary {
+    @apply border-[#cfd5df] bg-white text-navy-800 hover:bg-slate-50;
+  }
+  .btn-accent {
+    @apply border-seal-600 bg-seal-600 text-white hover:bg-seal-700;
+  }
+  .btn-danger {
+    @apply border-risk-critical bg-risk-critical text-white hover:bg-[#88102f];
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-navy-700 hover:bg-slate-100;
+  }
+  .btn-xs {
+    @apply px-2 py-1 text-2xs;
+  }
+  .table {
+    @apply w-full border-collapse text-left text-xs;
+  }
+  .table thead th {
+    @apply sticky top-0 z-10 border-b border-[var(--ficap-border)] bg-[#fafbfc] px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-[var(--ficap-muted)];
+  }
+  .table tbody td {
+    @apply border-b border-[#eef0f4] px-3 py-2 align-top text-[var(--ficap-text)];
+  }
+  .table tbody tr:hover {
+    @apply bg-[#fbfcfd];
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide;
+  }
+  .badge-neutral {
+    @apply border-slate-200 bg-slate-50 text-slate-600;
+  }
+  .badge-navy {
+    @apply border-navy-200 bg-navy-50 text-navy-700;
+  }
+  .badge-green {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-700;
+  }
+  .badge-amber {
+    @apply border-amber-200 bg-amber-50 text-amber-800;
+  }
+  .badge-red {
+    @apply border-rose-200 bg-rose-50 text-rose-800;
+  }
+  .badge-slate {
+    @apply border-slate-300 bg-slate-100 text-slate-700;
+  }
+  .kv {
+    @apply grid grid-cols-[minmax(120px,180px)_1fr] gap-x-4 gap-y-1.5 text-xs;
+  }
+  .kv dt {
+    @apply font-medium text-[var(--ficap-muted)];
+  }
+  .kv dd {
+    @apply text-[var(--ficap-text)];
+  }
+  .link {
+    @apply font-medium text-seal-700 underline decoration-seal-600/30 underline-offset-2 hover:decoration-seal-600;
+  }
+  .nav-item {
+    @apply flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-navy-100/80 transition-colors hover:bg-white/10 hover:text-white;
+  }
+  .nav-item-active {
+    @apply bg-white/15 text-white;
+  }
+  .nav-section {
+    @apply px-2.5 pb-1 pt-4 text-2xs font-semibold uppercase tracking-widest text-navy-300/70;
+  }
+  .prose-note {
+    @apply text-xs leading-relaxed text-[var(--ficap-muted)];
+  }
+  .code {
+    @apply rounded bg-slate-900 px-2 py-1 font-mono text-2xs text-slate-100;
+  }
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
