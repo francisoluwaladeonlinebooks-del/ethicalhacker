@@ -966,3 +966,177 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO fi
 
 -- Audit events are insert-only for the application role.
 REVOKE UPDATE, DELETE ON audit_events FROM ficap_app;
+
+-- ---------------------------------------------------------------------------
+-- National financial institution and digital asset registry
+--
+-- A registry record is descriptive data, never an authorisation to test. The
+-- tables below hold provenance, licence history, ownership verification and the
+-- reconciliation state of every entry. Nothing here enables active scanning:
+-- active testing requires a separate approved engagement with recorded scope.
+-- ---------------------------------------------------------------------------
+
+-- Widen the institution category list to the Nigerian licensed-entity taxonomy
+-- while keeping the original constraint name so the change is idempotent.
+ALTER TABLE institutions DROP CONSTRAINT IF EXISTS institutions_category_check;
+-- Map the earlier four-value taxonomy onto the expanded one before re-adding
+-- the constraint, so no existing record is lost or silently reinterpreted.
+UPDATE institutions SET category = 'payment_solution_service_provider' WHERE category = 'payment_service_provider';
+UPDATE institutions SET category = 'other' WHERE category NOT IN (
+  'commercial_bank','merchant_bank','non_interest_bank','microfinance_bank_national','microfinance_bank_state',
+  'microfinance_bank_tier1','microfinance_bank_tier2','microfinance_bank','payment_service_bank',
+  'primary_mortgage_bank','development_finance_institution','finance_company','bureau_de_change',
+  'mobile_money_operator','payment_solution_service_provider','switching_and_processing',
+  'payment_terminal_service_provider','payment_terminal_aggregator','super_agent','card_scheme',
+  'capital_market_operator','insurance_company','pension_operator','shared_infrastructure',
+  'third_party_service_provider','government_agency','other');
+ALTER TABLE institutions ADD CONSTRAINT institutions_category_check CHECK (category IN (
+  'commercial_bank','merchant_bank','non_interest_bank','microfinance_bank_national','microfinance_bank_state',
+  'microfinance_bank_tier1','microfinance_bank_tier2','microfinance_bank','payment_service_bank',
+  'primary_mortgage_bank','development_finance_institution','finance_company','bureau_de_change',
+  'mobile_money_operator','payment_solution_service_provider','switching_and_processing',
+  'payment_terminal_service_provider','payment_terminal_aggregator','super_agent','card_scheme',
+  'capital_market_operator','insurance_company','pension_operator','shared_infrastructure',
+  'third_party_service_provider','government_agency','other'
+));
+
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS regulator text;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS licence_category text;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS licence_status text NOT NULL DEFAULT 'unknown';
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS licence_issued_at date;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS licence_expires_at date;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS trading_name text;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS parent_institution_id uuid REFERENCES institutions(id) ON DELETE SET NULL;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS verification_status text NOT NULL DEFAULT 'unverified';
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS source_name text;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS source_url text;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS source_retrieved_at timestamptz;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS last_verified_at timestamptz;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS stale_after_days integer NOT NULL DEFAULT 180;
+ALTER TABLE institutions ADD COLUMN IF NOT EXISTS registry_notes text;
+
+CREATE TABLE IF NOT EXISTS institution_names (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  name           text NOT NULL,
+  name_type      text NOT NULL CHECK (name_type IN ('legal','trading','former','brand','abbreviation')),
+  source_name    text,
+  source_url     text,
+  retrieved_at   timestamptz,
+  verified       boolean NOT NULL DEFAULT false,
+  verified_by    uuid REFERENCES users(id),
+  verified_at    timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (institution_id, name, name_type)
+);
+
+CREATE TABLE IF NOT EXISTS licence_events (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  event_type     text NOT NULL CHECK (event_type IN ('granted','renewed','varied','suspended','revoked','surrendered','expired','category_changed','renamed','merged')),
+  licence_category text,
+  licence_number text,
+  effective_at   date NOT NULL,
+  regulator      text,
+  source_name    text,
+  source_url     text,
+  evidence_note  text,
+  recorded_by    uuid REFERENCES users(id),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS entity_relationships (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id        uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  related_institution_id uuid REFERENCES institutions(id) ON DELETE SET NULL,
+  related_name          text NOT NULL,
+  relationship          text NOT NULL CHECK (relationship IN ('parent','subsidiary','merger','acquisition','successor','shared_platform','outsourced_provider','agent_network')),
+  effective_at          date,
+  source_name           text,
+  source_url            text,
+  notes                 text,
+  created_at            timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS digital_assets (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id     uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  application_id     uuid REFERENCES applications(id) ON DELETE SET NULL,
+  asset_type         text NOT NULL CHECK (asset_type IN ('web_app','internet_banking','corporate_banking','admin_portal','api','webhook','mobile_android','mobile_ios','onboarding','core_banking_interface','third_party_service','shared_infrastructure')),
+  display_name       text NOT NULL,
+  identifier         text NOT NULL,                       -- domain, URL origin, API base, package id
+  environment        text NOT NULL DEFAULT 'production' CHECK (environment IN ('production','staging','sandbox','test','unknown')),
+  status             text NOT NULL DEFAULT 'candidate' CHECK (status IN ('candidate','ownership_verified','ownership_rejected','retired','unverified')),
+  ownership_evidence text,
+  verified_by        uuid REFERENCES users(id),
+  verified_at        timestamptz,
+  technical_contact_name  text,
+  technical_contact_email text,
+  source_name        text,
+  source_url         text,
+  retrieved_at       timestamptz,
+  notes              text,
+  data_mode          text NOT NULL DEFAULT 'demo' CHECK (data_mode IN ('demo','live')),
+  created_by         uuid REFERENCES users(id),
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (institution_id, asset_type, identifier)
+);
+CREATE INDEX IF NOT EXISTS digital_assets_inst_idx ON digital_assets(institution_id);
+CREATE INDEX IF NOT EXISTS digital_assets_status_idx ON digital_assets(status);
+
+CREATE TABLE IF NOT EXISTS registry_imports (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_name    text NOT NULL,
+  source_url     text,
+  regulator      text,
+  format         text NOT NULL CHECK (format IN ('csv','json','manual')),
+  retrieved_at   timestamptz,
+  row_count      integer NOT NULL DEFAULT 0,
+  created_count  integer NOT NULL DEFAULT 0,
+  updated_count  integer NOT NULL DEFAULT 0,
+  unchanged_count integer NOT NULL DEFAULT 0,
+  conflict_count integer NOT NULL DEFAULT 0,
+  rejected_count integer NOT NULL DEFAULT 0,
+  status         text NOT NULL DEFAULT 'applied' CHECK (status IN ('applied','rejected','partial')),
+  report         jsonb NOT NULL DEFAULT '{}'::jsonb,
+  imported_by    uuid REFERENCES users(id),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS registry_verification_queue (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id uuid REFERENCES institutions(id) ON DELETE CASCADE,
+  asset_id       uuid REFERENCES digital_assets(id) ON DELETE CASCADE,
+  item_type      text NOT NULL CHECK (item_type IN ('new_record','ownership_claim','licence_change','duplicate_suspected','stale_record','name_conflict')),
+  summary        text NOT NULL,
+  detail         text,
+  priority       text NOT NULL DEFAULT 'medium' CHECK (priority IN ('low','medium','high')),
+  status         text NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_review','resolved','rejected')),
+  assigned_to    uuid REFERENCES users(id),
+  resolved_by    uuid REFERENCES users(id),
+  resolved_at    timestamptz,
+  resolution_note text,
+  data_mode      text NOT NULL DEFAULT 'demo',
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['institution_names','licence_events','entity_relationships','digital_assets','registry_imports','registry_verification_queue']
+  LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
+    IF t IN ('institution_names','licence_events','entity_relationships','digital_assets') THEN
+      EXECUTE format('CREATE POLICY tenant_isolation ON %I FOR ALL TO ficap_app
+        USING (ficap_scope_ok(institution_id)) WITH CHECK (ficap_scope_ok(institution_id))', t);
+    ELSE
+      EXECUTE format('CREATE POLICY tenant_isolation ON %I FOR ALL TO ficap_app
+        USING (coalesce(current_setting(''app.cross_institution'', true), ''0'') = ''1'')
+        WITH CHECK (coalesce(current_setting(''app.cross_institution'', true), ''0'') = ''1'')', t);
+    END IF;
+  END LOOP;
+END $$;
+GRANT SELECT, INSERT, UPDATE, DELETE ON institution_names, licence_events, entity_relationships, digital_assets, registry_imports, registry_verification_queue TO ficap_app;

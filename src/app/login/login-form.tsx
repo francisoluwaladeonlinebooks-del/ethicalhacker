@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { loginAction, type LoginState } from '@/app/actions/auth';
+import { FramedNotice } from '@/components/framed-notice';
 
 type DemoAccount = { email: string; role: string; name: string };
 
@@ -14,6 +15,7 @@ export function LoginForm({ demoAccounts, demoPassword }: { demoAccounts: DemoAc
 
   return (
     <div className="space-y-4">
+      <FramedNotice />
       <form action={action} className="space-y-3" autoComplete="on">
         {state.error ? (
           <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">

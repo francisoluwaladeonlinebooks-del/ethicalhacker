@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { cancelMfaAction, verifyMfaAction, type MfaState } from '@/app/actions/auth';
+import { FramedNotice } from '@/components/framed-notice';
 
 const initialState: MfaState = {};
 
@@ -11,6 +12,7 @@ export function MfaForm({ demoCode }: { demoCode: string | null }) {
 
   return (
     <div className="space-y-3">
+      <FramedNotice />
       <form action={action} className="space-y-3">
         {state.error ? (
           <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">

@@ -9,6 +9,7 @@ import { withSystem, closeDb } from '@/lib/db/pool';
 import type { Tx } from '@/lib/db/pool';
 import { createUser } from '@/lib/domain/auth';
 import { createInstitution } from '@/lib/domain/institutions';
+import { seedRegistry } from '@/lib/demo/registry-seed';
 import { createApplication } from '@/lib/domain/applications';
 import { createEngagement } from '@/lib/domain/engagements';
 import { createFinding } from '@/lib/domain/findings';
@@ -57,7 +58,9 @@ async function truncateDemoData() {
     'finding_evidence', 'evidence', 'risk_assessments', 'cvss_scores', 'findings',
     'test_results', 'job_checks', 'job_events', 'assessment_jobs', 'test_plans', 'authorization_records',
     'scope_exclusions', 'scope_assets', 'engagement_applications', 'engagement_members', 'engagements',
-    'api_endpoints', 'application_versions', 'applications', 'artifacts', 'institutions',
+    'api_endpoints', 'application_versions', 'applications', 'artifacts',
+    'registry_verification_queue', 'registry_imports', 'digital_assets', 'entity_relationships',
+    'licence_events', 'institution_names', 'institutions',
     'auth_throttle', 'sessions', 'mfa_recovery_codes', 'users',
   ];
   for (const table of tables) {
@@ -109,7 +112,7 @@ export async function seedDemoData() {
     createInstitution(tx, assessorCtx, {
       name: 'Kudi Microfinance Bank',
       code: 'KUDI',
-      category: 'microfinance_bank',
+      category: 'microfinance_bank_state',
       licenceNumber: 'CBN/MFB/2021/087',
       riskTier: 'medium',
       city: 'Kano',
@@ -124,7 +127,7 @@ export async function seedDemoData() {
     createInstitution(tx, assessorCtx, {
       name: 'PayFast Payments Ltd',
       code: 'PAYFAST',
-      category: 'payment_service_provider',
+      category: 'payment_solution_service_provider',
       licenceNumber: 'CBN/PSP/2020/233',
       riskTier: 'high',
       city: 'Abuja',
@@ -1096,6 +1099,9 @@ export async function seedDemoData() {
     }),
   );
   await withSystem((tx) => submitReportForReview(tx, assessorCtx, executive.id));
+
+  // --- National registry and digital asset inventory ---------------------
+  await seedRegistry({ assessor, reviewer });
 
   // --- Summary -----------------------------------------------------------
   const summary = await withSystem((tx) =>
