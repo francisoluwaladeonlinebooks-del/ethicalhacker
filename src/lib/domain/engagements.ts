@@ -649,6 +649,37 @@ export async function assertEngagementOperational(
   }
   const assets = await tx.queryOne<{ count: string }>('SELECT count(*)::text AS count FROM scope_assets WHERE engagement_id = $1', [engagementId]);
   if (Number(assets?.count ?? 0) === 0) return { ok: false, reason: 'No approved scope assets', code: 'no_scope' };
+
+  // Ownership must be established from the registry, not asserted in a form.
+  // A scope asset is acceptable when it is a labelled training range, or when a
+  // registry record for the same institution is ownership-verified and its
+  // identifier matches the scope value (exact value or its host).
+  const unchecked = await tx.query<{ value: string; asset_type: string }>(
+    `SELECT s.value, s.asset_type
+       FROM scope_assets s
+      WHERE s.engagement_id = $1
+        AND coalesce(s.is_training_range, false) = false
+        AND NOT EXISTS (
+          SELECT 1 FROM digital_assets d
+           WHERE d.institution_id = $2
+             AND d.status = 'ownership_verified'
+             AND (
+               lower(d.identifier) = lower(s.value)
+               OR lower(d.identifier) = lower(split_part(split_part(s.value, '://', 2), '/', 1))
+             )
+        )
+      ORDER BY s.value
+      LIMIT 5`,
+    [engagementId, engagement.institution_id],
+  );
+  if (unchecked.length) {
+    const list = unchecked.map((asset) => asset.value).join(', ');
+    return {
+      ok: false,
+      reason: `Ownership is not verified in the registry for: ${list}. Record the evidence that establishes the institution operates the asset before testing.`,
+      code: 'ownership_unverified',
+    };
+  }
   return { ok: true };
 }
 

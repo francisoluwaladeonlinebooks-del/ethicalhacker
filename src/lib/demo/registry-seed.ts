@@ -59,7 +59,7 @@ const INSTITUTIONS: DemoInstitution[] = [
     assets: [
       { type: 'internet_banking', name: 'Meridian Retail Internet Banking', identifier: 'ib.meridian.example', ownership: 'verified', evidence: 'Onboarding pack signed by the CBN supervision contact records the channel owner and the operations lead; the documented change ticket references the same origin.', contact: 'Ngozi Adeyemi', contactEmail: 'contact@meridian.example' },
       { type: 'api', name: 'Meridian Open Banking API', identifier: 'api.meridian.example/v1', ownership: 'verified', evidence: 'Partner integration agreement on file names the API gateway operator and the version under support.', contact: 'Partner engineering', contactEmail: 'partners@meridian.example' },
-      { type: 'mobile_android', name: 'Meridian Mobile (Android)', identifier: 'com.meridian.synth', ownership: 'candidate', contact: 'Digital channels', contactEmail: 'digital@meridian.example' },
+      { type: 'mobile_android', name: 'Meridian Mobile (Android)', identifier: 'com.meridian.mobile', ownership: 'verified', evidence: 'Signed release build 5402 was reviewed against the mobile engineering handover note; the package identifier and signing identity match the institution’s published release.', contact: 'Digital channels', contactEmail: 'digital@meridian.example' },
       { type: 'admin_portal', name: 'Meridian Operations Console', identifier: 'ops.meridian.example', ownership: 'candidate', contact: 'Core operations', contactEmail: 'ops@meridian.example' },
     ],
     licenceEvents: [
@@ -85,6 +85,7 @@ const INSTITUTIONS: DemoInstitution[] = [
       { type: 'agent_app', name: 'Kudi Agent App (Android)', identifier: 'com.kudi.agent.synth', ownership: 'verified', evidence: 'Agent operations runbook supplied for this demonstration identifies the mobile team accountable for the application.', contact: 'Sadiq Lawal', contactEmail: 'security@kudi.example' },
       { type: 'onboarding', name: 'Kudi Digital Onboarding', identifier: 'onboard.kudi.example', ownership: 'candidate' },
       { type: 'web_app', name: 'Kudi Marketing Site', identifier: 'kudi.example', ownership: 'candidate' },
+      { type: 'web_app', name: 'Kudi Agent Banking Portal', identifier: 'agent.kudi.example', ownership: 'verified', evidence: 'Agent operations runbook supplied for this demonstration lists the portal and names the agent banking product owner as accountable.' },
     ],
     licenceEvents: [{ type: 'granted', effectiveAt: '2021-06-21', note: 'State microfinance licence in the synthetic source list.' }],
   },

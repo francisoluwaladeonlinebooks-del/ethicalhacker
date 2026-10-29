@@ -53,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       items: [
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/engagements', label: 'Engagements' }] : []),
         ...(can(ctx.user, 'engagement:create') ? [{ href: '/engagements/new', label: 'New engagement' }] : []),
+        ...(can(ctx.user, 'engagement:read') ? [{ href: '/plans', label: 'Assessment plans' }] : []),
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/assessments', label: 'Assessment modules' }] : []),
         ...(can(ctx.user, 'job:read') ? [{ href: '/jobs', label: 'Execution monitor', badge: counters.queuedJobs ? String(counters.queuedJobs) : undefined }] : []),
         ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Coverage matrix' }] : []),
@@ -120,7 +121,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white/95 px-4 py-2.5 backdrop-blur lg:px-6">
+        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white px-4 py-2.5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden text-xs font-semibold tracking-tight text-navy-900">FICAP</span>
             <span
