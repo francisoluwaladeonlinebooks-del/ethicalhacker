@@ -8,6 +8,7 @@ import {
   Card, CardHeader, CardBody, PageHeader, Badge, TableWrap, StatCard, EmptyState, Flash, DataQualityNote, formatDate,
 } from '@/components/ui';
 import { setEvidenceSharingAction, verifyEvidenceIntegrityAction } from '@/app/actions/governance';
+import { scannerConfigured, scannerDescription } from '@/lib/evidence-scan';
 import { Csrf } from '@/components/csrf';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,8 @@ export default async function EvidencePage({ searchParams }: { searchParams: Pro
     Promise.all([listEvidence(tx, ctx, { institutionId }), listArtifacts(tx, ctx, { institutionId }), listInstitutions(tx, ctx, {})]),
   );
 
+  const scannerReady = scannerConfigured();
+  const scannerNote = scannerDescription();
   const shared = evidence.filter((row: any) => row.share_with_institution).length;
   const restricted = evidence.filter((row: any) => row.classification === 'restricted').length;
   const expiring = evidence.filter((row: any) => row.retention_until && new Date(row.retention_until).getTime() < Date.now() + 30 * 86400000).length;
@@ -97,11 +100,20 @@ export default async function EvidencePage({ searchParams }: { searchParams: Pro
       </Card>
 
       <Card>
-        <CardHeader title="Uploaded artefacts" subtitle="Packages and specifications are treated as untrusted input: they are stored encrypted, parsed offline, and never executed on the application server." />
+        <CardHeader
+          title="Uploaded artefacts"
+          subtitle="Packages and specifications are treated as untrusted input: they are stored encrypted, parsed offline, never executed on the application server, and never served while quarantined."
+          actions={<Badge tone={scannerReady ? 'green' : 'amber'}>{scannerReady ? 'Scanner configured' : 'Scanning not configured'}</Badge>}
+        />
+        {!scannerReady ? (
+          <CardBody className="border-b border-[var(--ficap-border)]">
+            <p className="text-2xs leading-relaxed text-[var(--ficap-muted)]">{scannerNote}</p>
+          </CardBody>
+        ) : null}
         {artifacts.length ? (
           <TableWrap>
             <table className="table">
-              <thead><tr><th>File</th><th>Kind</th><th>Size</th><th>SHA-256</th><th>Status</th><th>Uploaded</th><th>By</th></tr></thead>
+              <thead><tr><th>File</th><th>Kind</th><th>Size</th><th>SHA-256</th><th>Status</th><th>Malware scan</th><th>Uploaded</th><th>By</th><th /></tr></thead>
               <tbody>
                 {artifacts.map((row: any) => (
                   <tr key={row.id}>
@@ -110,8 +122,17 @@ export default async function EvidencePage({ searchParams }: { searchParams: Pro
                     <td className="font-mono text-2xs">{Math.round(Number(row.size_bytes) / 1024)} KB</td>
                     <td className="font-mono text-2xs">{String(row.sha256).slice(0, 20)}…</td>
                     <td className="text-2xs"><Badge tone={row.status === 'analyzed' ? 'green' : row.status === 'quarantined' ? 'red' : 'slate'}>{row.status}</Badge></td>
+                    <td className="text-2xs">
+                      <Badge tone={row.analysis?.scan?.state === 'clean' ? 'green' : row.analysis?.scan?.state === 'infected' ? 'red' : row.analysis?.scan?.state === 'error' ? 'amber' : 'slate'}>
+                        {row.analysis?.scan?.state === 'clean' ? 'clean' : row.analysis?.scan?.state === 'infected' ? 'detected' : row.analysis?.scan?.state === 'error' ? 'scanner error' : 'not scanned'}
+                      </Badge>
+                      {row.analysis?.scan?.detail ? <div className="mt-0.5 max-w-[200px] text-[10px] leading-snug text-[var(--ficap-muted)]">{row.analysis.scan.detail}</div> : null}
+                    </td>
                     <td className="whitespace-nowrap text-2xs">{formatDate(row.uploaded_at)}</td>
                     <td className="text-2xs">{row.uploaded_by_name ?? '—'}</td>
+                    <td className="text-right">
+                      {row.status === 'quarantined' ? <span className="text-[10px] text-risk-critical">withheld</span> : <a className="btn btn-ghost btn-xs" href={`/api/artifacts/${row.id}/download`}>Download</a>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

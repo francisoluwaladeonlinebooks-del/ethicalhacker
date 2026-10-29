@@ -2,6 +2,7 @@ import type { Tx } from '@/lib/db/pool';
 import type { RequestContext } from '@/lib/db/context';
 import { encrypt, sha256 } from '@/lib/crypto';
 import { recordAudit } from '@/lib/domain/audit';
+import { isServedStatus, scanBuffer } from '@/lib/evidence-scan';
 import { can } from '@/lib/rbac';
 import { ForbiddenError, NotFoundError, ValidationError } from '@/lib/errors';
 
@@ -101,11 +102,16 @@ export async function storeArtifact(
   );
   if (duplicate) throw new ValidationError(`This exact file has already been uploaded as "${duplicate.filename}".`);
 
+  // The file is untrusted until a scanner says otherwise. A missing or failing
+  // scanner is recorded as "not scanned"; it is never treated as clean.
+  const scan = await scanBuffer(input.content, filename);
+  const artifactStatus = scan.state === 'infected' ? 'quarantined' : 'stored';
+
   const retentionUntil = new Date(Date.now() + (input.retentionDays ?? 180) * 86400000).toISOString().slice(0, 10);
   const row = await tx.queryOne<{ id: string }>(
     `INSERT INTO artifacts (institution_id, engagement_id, application_id, kind, filename, media_type, size_bytes, sha256,
-        body_enc, status, uploaded_by, retention_until)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'stored',$10,$11) RETURNING id`,
+        body_enc, status, analysis, uploaded_by, retention_until)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
     [
       input.institutionId,
       input.engagementId ?? null,
@@ -116,6 +122,8 @@ export async function storeArtifact(
       input.content.length,
       digest,
       encrypt(input.content),
+      artifactStatus,
+      JSON.stringify({ scan }),
       ctx.user.id,
       retentionUntil,
     ],
@@ -129,14 +137,23 @@ export async function storeArtifact(
       institutionId: input.institutionId,
       engagementId: input.engagementId ?? null,
       actor: { id: ctx.user.id, email: ctx.user.email, role: ctx.user.role },
-      metadata: { kind: input.kind, filename, sizeBytes: input.content.length, sha256: digest },
+      metadata: {
+        kind: input.kind,
+        filename,
+        sizeBytes: input.content.length,
+        sha256: digest,
+        scanState: scan.state,
+        scanProvider: scan.provider,
+        ...(scan.signature ? { scanSignature: scan.signature } : {}),
+      },
+      outcome: scan.state === 'infected' ? 'failure' : 'success',
       ip: ctx.ip,
       userAgent: ctx.userAgent,
       dataMode: ctx.mode,
     },
     tx,
   );
-  return { id: row!.id, filename, sha256: digest, sizeBytes: input.content.length, kind: input.kind };
+  return { id: row!.id, filename, sha256: digest, sizeBytes: input.content.length, kind: input.kind, scan };
 }
 
 export async function listArtifacts(tx: Tx, ctx: RequestContext, filters: { institutionId?: string; applicationId?: string; engagementId?: string } = {}) {
@@ -164,12 +181,41 @@ export async function listArtifacts(tx: Tx, ctx: RequestContext, filters: { inst
 }
 
 export async function readArtifact(tx: Tx, ctx: RequestContext, artifactId: string) {
-  const artifact = await tx.queryOne<{ id: string; institution_id: string; filename: string; body_enc: Uint8Array; sha256: string; engagement_id: string | null }>(
-    'SELECT id, institution_id, filename, body_enc, sha256, engagement_id FROM artifacts WHERE id = $1',
+  const artifact = await tx.queryOne<{
+    id: string;
+    institution_id: string;
+    filename: string;
+    body_enc: Uint8Array;
+    sha256: string;
+    engagement_id: string | null;
+    status: string;
+    analysis: unknown;
+  }>(
+    'SELECT id, institution_id, filename, body_enc, sha256, engagement_id, status, analysis FROM artifacts WHERE id = $1',
     [artifactId],
   );
   if (!artifact) throw new NotFoundError('Artefact not found');
   if (!can(ctx.user, 'evidence:download')) throw new ForbiddenError('Missing permission: evidence:download');
+  if (!isServedStatus(artifact.status, artifact.analysis)) {
+    // A quarantined or failed artefact is not served to anyone, including the
+    // administrator who uploaded it. The refusal is recorded.
+    await recordAudit(
+      {
+        action: 'artifact.download_refused',
+        entityType: 'artifact',
+        entityId: artifactId,
+        institutionId: artifact.institution_id,
+        engagementId: artifact.engagement_id,
+        outcome: 'failure',
+        actor: { id: ctx.user.id, email: ctx.user.email, role: ctx.user.role },
+        metadata: { filename: artifact.filename, status: artifact.status },
+        ip: ctx.ip,
+        dataMode: ctx.mode,
+      },
+      tx,
+    );
+    throw new ForbiddenError('This artefact is quarantined and cannot be downloaded');
+  }
   const { decrypt } = await import('@/lib/crypto');
   const content = decrypt(artifact.body_enc);
   if (sha256(content) !== artifact.sha256) throw new ValidationError('Artefact integrity verification failed');
