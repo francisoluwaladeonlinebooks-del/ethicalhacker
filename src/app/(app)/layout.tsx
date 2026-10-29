@@ -33,16 +33,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const groups: NavGroup[] = [
     {
-      title: 'Supervision',
+      title: 'Overview',
       items: [
         { href: '/', label: 'Overview' },
+        ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
+      ],
+    },
+    {
+      title: 'Institutions and assets',
+      items: [
         ...(can(ctx.user, 'institution:read') ? [{ href: '/registry', label: 'National registry' }] : []),
         ...(can(ctx.user, 'institution:read') ? [{ href: '/registry/assets', label: 'Digital asset inventory' }] : []),
         ...(can(ctx.user, 'institution:read') ? [{ href: '/institutions', label: 'Institution records' }] : []),
         ...(can(ctx.user, 'application:read') ? [{ href: '/applications', label: 'Application inventory' }] : []),
-        ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
-        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Framework coverage' }] : []),
-        ...(can(ctx.user, 'institution:read') ? [{ href: '/nist', label: 'NIST CSF profiles' }] : []),
       ],
     },
     {
@@ -50,17 +53,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       items: [
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/engagements', label: 'Engagements' }] : []),
         ...(can(ctx.user, 'engagement:create') ? [{ href: '/engagements/new', label: 'New engagement' }] : []),
-        ...(can(ctx.user, 'job:read') ? [{ href: '/jobs', label: 'Job monitor', badge: counters.queuedJobs ? String(counters.queuedJobs) : undefined }] : []),
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/assessments', label: 'Assessment modules' }] : []),
+        ...(can(ctx.user, 'job:read') ? [{ href: '/jobs', label: 'Execution monitor', badge: counters.queuedJobs ? String(counters.queuedJobs) : undefined }] : []),
+        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Coverage matrix' }] : []),
       ],
     },
     {
-      title: 'Findings and remediation',
+      title: 'Findings and risk',
       items: [
         ...(can(ctx.user, 'finding:read') ? [{ href: '/findings', label: 'Findings explorer', badge: counters.openFindings ? String(counters.openFindings) : undefined }] : []),
-        ...(can(ctx.user, 'finding:update') ? [{ href: '/risk', label: 'Risk assessment' }] : []),
+        ...(can(ctx.user, 'finding:update') ? [{ href: '/risk', label: 'Risk intelligence' }] : []),
         ...(can(ctx.user, 'remediation:read') ? [{ href: '/remediation', label: 'Remediation' }] : []),
         ...(can(ctx.user, 'retest:request') || can(ctx.user, 'retest:verify') ? [{ href: '/retesting', label: 'Retesting' }] : []),
+        ...(can(ctx.user, 'evidence:read') ? [{ href: '/evidence', label: 'Evidence register' }] : []),
       ],
     },
     {
@@ -70,9 +75,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ],
     },
     {
+      title: 'Frameworks and governance',
+      items: [
+        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Framework reference' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/nist', label: 'NIST CSF profiles' }] : []),
+        ...(can(ctx.user, 'audit:read') ? [{ href: '/audit', label: 'Audit and compliance' }] : []),
+      ],
+    },
+    {
       title: 'Administration',
       items: [
-        ...(can(ctx.user, 'audit:read') ? [{ href: '/audit', label: 'Audit trail' }] : []),
         ...(can(ctx.user, 'user:manage') ? [{ href: '/admin/users', label: 'Users and roles' }] : []),
         ...(can(ctx.user, 'settings:manage') ? [{ href: '/admin/settings', label: 'Platform configuration' }] : []),
         ...(can(ctx.user, 'engine:manage') ? [{ href: '/admin/engines', label: 'Engine health' }] : []),

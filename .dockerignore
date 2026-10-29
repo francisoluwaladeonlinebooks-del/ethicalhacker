@@ -1,0 +1,9 @@
+node_modules
+.next
+.data
+.git
+tests
+*.tsbuildinfo
+.env
+.env.*
+README.md
