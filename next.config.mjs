@@ -14,9 +14,11 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
           { key: 'X-Frame-Options', value: 'DENY' },
-          // HSTS is only meaningful over TLS. It is emitted in production builds
-          // so that plain-HTTP local development is never pinned by a browser.
-          ...(process.env.NODE_ENV === 'production'
+          // HSTS is opt-in. It is only correct when the deployment owns the domain
+          // and terminates TLS for every subdomain it covers; emitting it from a
+          // shared preview host would pin unrelated subdomains in the operator's
+          // browser. Enable with FICAP_ENABLE_HSTS=1 in a real deployment.
+          ...(process.env.FICAP_ENABLE_HSTS === '1' || process.env.FICAP_ENABLE_HSTS === 'true'
             ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
             : []),
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },

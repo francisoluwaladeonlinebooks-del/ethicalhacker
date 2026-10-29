@@ -189,7 +189,7 @@ return `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`,
 - **Audit.** `audit_events` is append-only at the database level and hash-chained.
   Authorisation refusals, evidence access, exports, configuration changes and licence or
   ownership decisions are all recorded with actor, scope, IP and mode.
-- **Transport headers.** CSP, HSTS (when served over TLS), anti-framing,
+- **Transport headers.** CSP, HSTS (opt-in via `FICAP_ENABLE_HSTS`, only when the deployment owns the domain and terminates TLS), anti-framing,
   `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff` and a restrictive
   permissions policy are applied on every response.
 - **Safe failure.** A failed or blocked check is rendered as blocked/failed. A scanner

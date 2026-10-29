@@ -89,12 +89,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ...(can(ctx.user, 'settings:manage') ? [{ href: '/admin/settings', label: 'Platform configuration' }] : []),
         ...(can(ctx.user, 'engine:manage') ? [{ href: '/admin/engines', label: 'Engine health' }] : []),
         ...(can(ctx.user, 'framework:manage') ? [{ href: '/admin/frameworks', label: 'Catalogue management' }] : []),
+        ...(can(ctx.user, 'settings:manage') || can(ctx.user, 'audit:read') ? [{ href: '/admin/verification', label: 'Verification status' }] : []),
       ],
     },
   ];
 
   return (
     <div className="flex min-h-screen">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-navy-950 px-3 py-4 text-white lg:flex">
         <Link href="/" className="mb-2 flex items-center gap-2 px-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-2xs font-bold">CB</span>
@@ -138,7 +140,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/" className="btn btn-secondary btn-xs">Overview</Link>
           </div>
         </header>
-        <main className="min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
         <footer className="no-print border-t border-[var(--ficap-border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--ficap-muted)] lg:px-6">
           FICAP — Financial Institution Cybersecurity Assurance Platform. Access is restricted to authorised users; every action is
           recorded in a hash-chained audit trail. Findings reflect the configuration observed within the approved testing window and
