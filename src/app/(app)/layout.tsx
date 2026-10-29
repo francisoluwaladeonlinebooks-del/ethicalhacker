@@ -36,7 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       title: 'Supervision',
       items: [
         { href: '/', label: 'Overview' },
-        ...(can(ctx.user, 'institution:read') ? [{ href: '/institutions', label: 'Institution registry' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/registry', label: 'National registry' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/registry/assets', label: 'Digital asset inventory' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/institutions', label: 'Institution records' }] : []),
         ...(can(ctx.user, 'application:read') ? [{ href: '/applications', label: 'Application inventory' }] : []),
         ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
         ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Framework coverage' }] : []),
