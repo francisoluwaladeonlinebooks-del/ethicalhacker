@@ -15,7 +15,10 @@ export async function pageContext(permission?: Permission | Permission[]): Promi
   if (permission) {
     const required = Array.isArray(permission) ? permission : [permission];
     if (!required.some((permission) => can(ctx.user, permission))) {
-      throw new ForbiddenError('You do not have access to this area of the platform.');
+      // A role without the permission is redirected to an explicit refusal
+      // instead of a stack trace. The underlying data access is still refused
+      // server side by the service layer and by row level security.
+      redirect(`/access-denied?need=${encodeURIComponent(required.join(','))}`);
     }
   }
   return ctx;
