@@ -181,6 +181,11 @@ return `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`,
   hosted preview requires; every mutating request still carries a CSRF token and passes the
   framework's Origin check. Both attributes can be pinned with `FICAP_COOKIE_SECURE` and
   `FICAP_COOKIE_SAMESITE`.
+- **Anti-framing.** Every response carries `frame-ancestors 'none'` and `X-Frame-Options: DENY`,
+  so the platform cannot be overlaid by a hostile page. A deployment that must be rendered
+  inside a frame (an embedded demonstration pane, for example) has to opt in explicitly with
+  `FICAP_FRAME_ANCESTORS`; the strict pair stays the default and framing is never widened
+  silently.
 - **Sessions.** Short-lived, idle-bounded, server-side sessions with a CSRF token per
   session; MFA is required and a user without verified MFA holds no effective
   permission. High-risk actions require re-authentication. Passwords are hashed with

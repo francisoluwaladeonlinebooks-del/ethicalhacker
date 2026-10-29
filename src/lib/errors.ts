@@ -69,6 +69,12 @@ export function toPublicError(error: unknown): { status: number; body: { error: 
   if (maybe?.status && maybe?.code) {
     return { status: maybe.status, body: { error: maybe.message ?? 'Request failed', code: maybe.code } };
   }
+  // A malformed identifier reaching the database raises a cast error (SQLSTATE
+  // 22P02). That can only mean the record does not exist, so answer 404 rather
+  // than reporting an internal fault and logging a spurious server error.
+  if (maybe?.code === '22P02') {
+    return { status: 404, body: { error: 'The requested record could not be found.', code: 'not_found' } };
+  }
   // Never expose stack traces or SQL to the browser.
   return { status: 500, body: { error: 'An unexpected error occurred. The event has been logged.', code: 'internal_error' } };
 }

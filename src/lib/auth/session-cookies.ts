@@ -47,6 +47,7 @@ export async function cookiePolicy(): Promise<CookiePolicy> {
   const store = await headers();
   const forwardedProto = (store.get('x-forwarded-proto') ?? '').split(',')[0].trim().toLowerCase();
   const origin = (store.get('origin') ?? '').toLowerCase();
+  const referer = (store.get('referer') ?? '').toLowerCase();
   const fetchSite = (store.get('sec-fetch-site') ?? '').toLowerCase();
   const host = (store.get('x-forwarded-host') ?? store.get('host') ?? '').toLowerCase();
 
@@ -61,7 +62,23 @@ export async function cookiePolicy(): Promise<CookiePolicy> {
     }
   }
 
-  const https = forwardedProto === 'https';
+  // Scheme detection must not depend on a single proxy header. X-Forwarded-Proto
+  // is a reliable signal when a TLS-terminating proxy sets it, but some servers
+  // (including `next start`) synthesise `http` for a plain upstream socket even
+  // when the browser reached the deployment over HTTPS. The browser's own
+  // Origin/Referer scheme is therefore treated as an equal signal: it is the
+  // scheme the browser will actually use when deciding whether to store a
+  // `Secure` cookie. Any of the three saying HTTPS wins.
+  const schemeOf = (raw: string): string => {
+    try {
+      return new URL(raw).protocol;
+    } catch {
+      return '';
+    }
+  };
+  const https =
+    forwardedProto === 'https' || schemeOf(origin) === 'https:' || schemeOf(referer) === 'https:';
+
   const secureOverride = parseBoolean(process.env.FICAP_COOKIE_SECURE);
   const secure = secureOverride ?? https;
 

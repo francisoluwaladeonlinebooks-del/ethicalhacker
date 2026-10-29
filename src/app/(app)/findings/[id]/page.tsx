@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { pageContext, query } from '@/lib/page-context';
 import { TRANSITIONS, FINDING_STATUS_LABELS, getFindingDetail } from '@/lib/domain/findings';
 import { listFrameworks } from '@/lib/domain/frameworks';
@@ -27,6 +28,7 @@ const METRIC_LABELS: Record<string, string> = {
 
 export default async function FindingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const ctx = await pageContext('finding:read');
   const detail = await query(ctx, async (tx) => {
     try {

@@ -6,6 +6,7 @@ import { renderReportPdf } from '@/lib/reporting/pdf';
 import { renderReportXlsx } from '@/lib/reporting/xlsx';
 import { recordAudit } from '@/lib/domain/audit';
 import { toPublicError } from '@/lib/errors';
+import { isUuid } from '@/lib/ids';
 
 /**
  * Report export.
@@ -22,6 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const ctx = await getRequestContext();
     if (!ctx) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     if (!['pdf', 'xlsx', 'json'].includes(format)) return NextResponse.json({ error: 'Unsupported export format' }, { status: 400 });
+    if (!isUuid(id)) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
 
     const { report } = await withScope(ctx.scope, (tx) => getReport(tx, ctx, id));
     const snapshot = report.snapshot ?? {};

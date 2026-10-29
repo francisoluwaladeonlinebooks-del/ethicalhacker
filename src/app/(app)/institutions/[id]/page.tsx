@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { cookies } from 'next/headers';
 import { pageContext, query, canDo, flashFrom } from '@/lib/page-context';
 import { getInstitutionOverview, categoryLabel } from '@/lib/domain/institutions';
@@ -21,6 +22,7 @@ export default async function InstitutionDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const ctx = await pageContext('institution:read');
   const flash = flashFrom(await searchParams);
   const csrf = (await cookies()).get(CSRF_COOKIE)?.value ?? '';

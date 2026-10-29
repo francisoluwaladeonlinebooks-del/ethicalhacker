@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { cookies } from 'next/headers';
 import { pageContext, query, canDo, flashFrom } from '@/lib/page-context';
 import { getJob } from '@/lib/domain/jobs';
@@ -18,6 +19,7 @@ export default async function JobDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const ctx = await pageContext('job:read');
   const flash = flashFrom(await searchParams);
   const csrf = (await cookies()).get(CSRF_COOKIE)?.value ?? '';

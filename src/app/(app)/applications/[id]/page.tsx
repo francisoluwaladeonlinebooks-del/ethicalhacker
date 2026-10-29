@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { cookies } from 'next/headers';
 import { pageContext, query, canDo, flashFrom } from '@/lib/page-context';
 import { getApplicationDetail, channelLabel } from '@/lib/domain/applications';
@@ -44,6 +45,7 @@ export default async function ApplicationDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const ctx = await pageContext('application:read');
   const flash = flashFrom(await searchParams);
   const csrf = (await cookies()).get(CSRF_COOKIE)?.value ?? '';

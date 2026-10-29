@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { pageContext, query } from '@/lib/page-context';
 import { getReport } from '@/lib/reporting/report';
 import { can } from '@/lib/rbac';
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const ctx = await pageContext('report:read');
   const data = await query(ctx, async (tx) => {
     try {

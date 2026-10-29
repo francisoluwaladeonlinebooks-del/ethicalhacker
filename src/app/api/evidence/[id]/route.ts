@@ -4,6 +4,7 @@ import { withScope } from '@/lib/db/pool';
 import { readEvidence } from '@/lib/domain/evidence';
 import { can } from '@/lib/rbac';
 import { toPublicError } from '@/lib/errors';
+import { isUuid } from '@/lib/ids';
 
 /**
  * Evidence body retrieval.
@@ -21,6 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!can(ctx.user, 'evidence:download')) {
       return NextResponse.json({ error: 'You do not have permission to download evidence' }, { status: 403 });
     }
+    if (!isUuid(id)) return NextResponse.json({ error: 'Evidence not found' }, { status: 404 });
     const evidence = await withScope(ctx.scope, (tx) => readEvidence(tx, ctx, id, 'download'));
     return new NextResponse(new Uint8Array(evidence.content), {
       status: 200,

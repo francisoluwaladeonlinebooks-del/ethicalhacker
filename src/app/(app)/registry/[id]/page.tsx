@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { isUuid } from '@/lib/ids';
 import { pageContext, query, flashFrom, canDo } from '@/lib/page-context';
 import { DIGITAL_ASSET_TYPES, ASSET_STATUS_LABELS, listDigitalAssets } from '@/lib/domain/registry';
 import { INSTITUTION_CATEGORIES } from '@/lib/domain/institutions';
@@ -19,6 +20,7 @@ export default async function InstitutionRegistryPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const search = await searchParams;
   const ctx = await pageContext('institution:read');
   const flash = flashFrom(search);

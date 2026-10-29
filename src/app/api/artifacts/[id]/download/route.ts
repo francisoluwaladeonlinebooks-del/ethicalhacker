@@ -4,6 +4,7 @@ import { withScope } from '@/lib/db/pool';
 import { readArtifact, sanitiseFilename } from '@/lib/domain/artifacts';
 import { can } from '@/lib/rbac';
 import { toPublicError } from '@/lib/errors';
+import { isUuid } from '@/lib/ids';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!can(ctx.user, 'evidence:download')) {
       return NextResponse.json({ error: 'You do not have permission to download artefacts' }, { status: 403 });
     }
+    if (!isUuid(id)) return NextResponse.json({ error: 'Artefact not found' }, { status: 404 });
     const artifact = await withScope(ctx.scope, (tx) => readArtifact(tx, ctx, id));
     const filename = sanitiseFilename(artifact.filename || 'artifact');
     return new NextResponse(new Uint8Array(artifact.content), {
