@@ -10,32 +10,56 @@ import { logoutAction } from '@/app/actions/auth';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * The home route renders a different workspace per role (see
+ * `src/app/(app)/page.tsx`), so the navigation names it accordingly instead of
+ * calling every one of them "Overview".
+ */
+const HOME_LABELS: Record<string, string> = {
+  cbn_assessor: 'Assessor workspace',
+  supervisory_reviewer: 'Supervisory review',
+  report_approver: 'Approval queue',
+  institution_contact: 'My institution',
+  platform_admin: 'Platform operations',
+};
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getRequestContext({ required: false });
   if (!ctx) redirect('/login');
 
-  const counters = await withScope(ctx.scope, async (tx) => {
-    const row = await tx.queryOne<{ open_findings: string; queued_jobs: string; unapproved_reports: string }>(
-      `SELECT
-        (SELECT count(*)::text FROM findings WHERE data_mode = $1 AND status IN ('new','needs_verification','confirmed','reopened','remediation_in_progress','ready_for_retest')) AS open_findings,
-        (SELECT count(*)::text FROM assessment_jobs WHERE institution_id IN (SELECT id FROM institutions WHERE data_mode = $1) AND status IN ('queued','running')) AS queued_jobs,
-        (SELECT count(*)::text FROM reports WHERE data_mode = $1 AND status IN ('draft','in_review','changes_requested')) AS unapproved_reports`,
-      [ctx.mode],
-    );
-    return {
-      openFindings: Number(row?.open_findings ?? 0),
-      queuedJobs: Number(row?.queued_jobs ?? 0),
-      unapprovedReports: Number(row?.unapproved_reports ?? 0),
-    };
-  }).catch(() => ({ openFindings: 0, queuedJobs: 0, unapprovedReports: 0 }));
+  // Navigation badges are only computed for the material the role may open. A
+  // count is a disclosure in its own right, so a role without `finding:read`
+  // never has one calculated for it - the figure stays at zero rather than
+  // being fetched and then hidden in the markup.
+  const showFindings = can(ctx.user, 'finding:read');
+  const showJobs = can(ctx.user, 'job:read');
+  const showReports = can(ctx.user, 'report:read');
+
+  const counters =
+    showFindings || showJobs || showReports
+      ? await withScope(ctx.scope, async (tx) => {
+          const row = await tx.queryOne<{ open_findings: string; queued_jobs: string; unapproved_reports: string }>(
+            `SELECT
+              ${showFindings ? `(SELECT count(*)::text FROM findings WHERE data_mode = $1 AND status IN ('new','needs_verification','confirmed','reopened','remediation_in_progress','ready_for_retest'))` : `'0'::text`} AS open_findings,
+              ${showJobs ? `(SELECT count(*)::text FROM assessment_jobs WHERE institution_id IN (SELECT id FROM institutions WHERE data_mode = $1) AND status IN ('queued','running'))` : `'0'::text`} AS queued_jobs,
+              ${showReports ? `(SELECT count(*)::text FROM reports WHERE data_mode = $1 AND status IN ('draft','in_review','changes_requested'))` : `'0'::text`} AS unapproved_reports`,
+            [ctx.mode],
+          );
+          return {
+            openFindings: Number(row?.open_findings ?? 0),
+            queuedJobs: Number(row?.queued_jobs ?? 0),
+            unapprovedReports: Number(row?.unapproved_reports ?? 0),
+          };
+        }).catch(() => ({ openFindings: 0, queuedJobs: 0, unapprovedReports: 0 }))
+      : { openFindings: 0, queuedJobs: 0, unapprovedReports: 0 };
 
   const csrf = (await cookies()).get(CSRF_COOKIE)?.value ?? '';
 
   const groups: NavGroup[] = [
     {
-      title: 'Overview',
+      title: 'Workspace',
       items: [
-        { href: '/', label: 'Overview' },
+        { href: '/', label: HOME_LABELS[ctx.user.role] ?? 'Overview' },
         ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
       ],
     },

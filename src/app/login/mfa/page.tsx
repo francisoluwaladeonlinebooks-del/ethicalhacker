@@ -41,7 +41,7 @@ export default async function MfaPage() {
             {new Date(session.expires_at).toISOString().slice(11, 16)} UTC.
           </p>
           <div className="mt-5">
-            <MfaForm demoCode={demoCode} />
+            <MfaForm demoCode={demoCode} challenge={token} />
           </div>
         </div>
         <p className="mt-4 text-center text-2xs text-[var(--ficap-muted)]">

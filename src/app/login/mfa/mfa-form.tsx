@@ -12,7 +12,7 @@ function secondsUntilNextStep(): number {
   return 30 - (Math.floor(Date.now() / 1000) % 30);
 }
 
-export function MfaForm({ demoCode }: { demoCode: string | null }) {
+export function MfaForm({ demoCode, challenge }: { demoCode: string | null; challenge: string }) {
   const [state, action, pending] = useActionState(verifyMfaAction, initialState);
   const [code, setCode] = useState('');
   const router = useRouter();
@@ -36,6 +36,15 @@ export function MfaForm({ demoCode }: { demoCode: string | null }) {
     <div className="space-y-3">
       <FramedNotice />
       <form action={action} className="space-y-3">
+        {/*
+          The pending sign-in token travels with the form. It is short-lived
+          (10 minutes), single-use, rotated the moment the code is accepted, and
+          useless without the authenticator code, so carrying it here is no
+          weaker than the equivalent HttpOnly cookie - and it is the only way a
+          verification succeeds when a browser withholds a third-party cookie in
+          an embedded view. It never appears in a URL.
+        */}
+        <input type="hidden" name="challenge" value={challenge} />
         {state.error ? (
           <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
             {state.error}
