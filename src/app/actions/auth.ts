@@ -15,7 +15,9 @@ import { requestMeta, withMessage } from '@/app/actions/helpers';
 export type LoginState = { error?: string; info?: string };
 
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const email = String(formData.get('email') ?? '').trim();
+  // Addresses are matched case-insensitively; a stray capital or trailing space
+  // must not look like a different account.
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
   if (!email || !password) return { error: 'Enter your email address and password.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'Enter a valid email address.' };
@@ -59,6 +61,22 @@ export async function verifyMfaAction(_prev: MfaState, formData: FormData): Prom
     redirect('/');
   }
   if (outcome.status === 'locked') return { error: outcome.reason };
+
+  // A wrong code must not throw the pending sign-in away. The pending session is
+  // still valid, so the user corrects the code instead of restarting the flow
+  // (previously this branch cleared the cookie, which produced a misleading
+  // "session expired" message on the next attempt).
+  if (outcome.remainingAttempts !== undefined) {
+    const remaining = outcome.remainingAttempts;
+    const hint = demoMode()
+      ? ' In demonstration mode, use the code shown on this page — no authenticator device is enrolled for the synthetic accounts.'
+      : '';
+    return {
+      error: `${outcome.reason}. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before the account is temporarily locked.${hint}`,
+    };
+  }
+
+  // The session itself is gone (expired or revoked): a fresh sign-in is required.
   await clearPendingCookie();
   redirect(withMessage('/login', { error: outcome.reason }));
 }

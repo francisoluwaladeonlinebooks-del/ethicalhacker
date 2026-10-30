@@ -9,6 +9,8 @@
   --ficap-text: #182134;
   --ficap-muted: #5b6577;
   --ficap-navy: #0d1a2c;
+  --ficap-navy-900: #0b1c33;
+  --ficap-focus: #1d4ed8;
   --ficap-accent: #0f766e;
 }
 
@@ -151,4 +153,46 @@ body {
   .no-print {
     display: none !important;
   }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Accessibility scaffolding
+   --------------------------------------------------------------------------- */
+
+/* Keyboard users must be able to jump past the navigation. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  border-radius: 0 0 0.375rem 0;
+  background: var(--ficap-navy-900, #0b1c33);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+.skip-link:focus {
+  left: 0;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Respect the operating system's reduced motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A visible focus ring for every interactive element, never removed. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ficap-focus, #1d4ed8);
+  outline-offset: 2px;
 }

@@ -33,14 +33,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const groups: NavGroup[] = [
     {
-      title: 'Supervision',
+      title: 'Overview',
       items: [
         { href: '/', label: 'Overview' },
-        ...(can(ctx.user, 'institution:read') ? [{ href: '/institutions', label: 'Institution registry' }] : []),
-        ...(can(ctx.user, 'application:read') ? [{ href: '/applications', label: 'Application inventory' }] : []),
         ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
-        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Framework coverage' }] : []),
-        ...(can(ctx.user, 'institution:read') ? [{ href: '/nist', label: 'NIST CSF profiles' }] : []),
+      ],
+    },
+    {
+      title: 'Institutions and assets',
+      items: [
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/registry', label: 'National registry' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/registry/assets', label: 'Digital asset inventory' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/institutions', label: 'Institution records' }] : []),
+        ...(can(ctx.user, 'application:read') ? [{ href: '/applications', label: 'Application inventory' }] : []),
       ],
     },
     {
@@ -48,17 +53,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       items: [
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/engagements', label: 'Engagements' }] : []),
         ...(can(ctx.user, 'engagement:create') ? [{ href: '/engagements/new', label: 'New engagement' }] : []),
-        ...(can(ctx.user, 'job:read') ? [{ href: '/jobs', label: 'Job monitor', badge: counters.queuedJobs ? String(counters.queuedJobs) : undefined }] : []),
+        ...(can(ctx.user, 'engagement:read') ? [{ href: '/plans', label: 'Assessment plans' }] : []),
         ...(can(ctx.user, 'engagement:read') ? [{ href: '/assessments', label: 'Assessment modules' }] : []),
+        ...(can(ctx.user, 'job:read') ? [{ href: '/jobs', label: 'Execution monitor', badge: counters.queuedJobs ? String(counters.queuedJobs) : undefined }] : []),
+        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Coverage matrix' }] : []),
       ],
     },
     {
-      title: 'Findings and remediation',
+      title: 'Findings and risk',
       items: [
         ...(can(ctx.user, 'finding:read') ? [{ href: '/findings', label: 'Findings explorer', badge: counters.openFindings ? String(counters.openFindings) : undefined }] : []),
-        ...(can(ctx.user, 'finding:update') ? [{ href: '/risk', label: 'Risk assessment' }] : []),
+        ...(can(ctx.user, 'finding:update') ? [{ href: '/risk', label: 'Risk intelligence' }] : []),
         ...(can(ctx.user, 'remediation:read') ? [{ href: '/remediation', label: 'Remediation' }] : []),
         ...(can(ctx.user, 'retest:request') || can(ctx.user, 'retest:verify') ? [{ href: '/retesting', label: 'Retesting' }] : []),
+        ...(can(ctx.user, 'evidence:read') ? [{ href: '/evidence', label: 'Evidence register' }] : []),
       ],
     },
     {
@@ -68,19 +76,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ],
     },
     {
+      title: 'Frameworks and governance',
+      items: [
+        ...(can(ctx.user, 'framework:read') ? [{ href: '/frameworks', label: 'Framework reference' }] : []),
+        ...(can(ctx.user, 'institution:read') ? [{ href: '/nist', label: 'NIST CSF profiles' }] : []),
+        ...(can(ctx.user, 'audit:read') ? [{ href: '/audit', label: 'Audit and compliance' }] : []),
+      ],
+    },
+    {
       title: 'Administration',
       items: [
-        ...(can(ctx.user, 'audit:read') ? [{ href: '/audit', label: 'Audit trail' }] : []),
         ...(can(ctx.user, 'user:manage') ? [{ href: '/admin/users', label: 'Users and roles' }] : []),
         ...(can(ctx.user, 'settings:manage') ? [{ href: '/admin/settings', label: 'Platform configuration' }] : []),
         ...(can(ctx.user, 'engine:manage') ? [{ href: '/admin/engines', label: 'Engine health' }] : []),
         ...(can(ctx.user, 'framework:manage') ? [{ href: '/admin/frameworks', label: 'Catalogue management' }] : []),
+        ...(can(ctx.user, 'settings:manage') || can(ctx.user, 'audit:read') ? [{ href: '/admin/verification', label: 'Verification status' }] : []),
       ],
     },
   ];
 
   return (
     <div className="flex min-h-screen">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-navy-950 px-3 py-4 text-white lg:flex">
         <Link href="/" className="mb-2 flex items-center gap-2 px-1.5">
           <span className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-2xs font-bold">CB</span>
@@ -104,7 +121,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white/95 px-4 py-2.5 backdrop-blur lg:px-6">
+        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white px-4 py-2.5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden text-xs font-semibold tracking-tight text-navy-900">FICAP</span>
             <span
@@ -124,7 +141,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/" className="btn btn-secondary btn-xs">Overview</Link>
           </div>
         </header>
-        <main className="min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
         <footer className="no-print border-t border-[var(--ficap-border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--ficap-muted)] lg:px-6">
           FICAP — Financial Institution Cybersecurity Assurance Platform. Access is restricted to authorised users; every action is
           recorded in a hash-chained audit trail. Findings reflect the configuration observed within the approved testing window and

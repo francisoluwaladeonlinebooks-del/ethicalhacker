@@ -3,6 +3,7 @@ import { pageContext, query, canDo } from '@/lib/page-context';
 import { executiveSummary, technicalSummary } from '@/lib/domain/analytics';
 import { listAuditEvents } from '@/lib/domain/audit';
 import { Badge, Bar, Card, CardBody, CardHeader, DataQualityNote, EmptyState, PageHeader, SeverityBadge, StatCard, StatusBadge, TableWrap, formatDate, relativeDays } from '@/components/ui';
+import { RoleBrief } from '@/components/role-brief';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,8 @@ export default async function OverviewPage() {
           </>
         }
       />
+
+      <RoleBrief ctx={ctx} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Institutions in scope" value={t.institutions ?? 0} hint={`${t.applications ?? 0} active applications inventoried`} href={canDo(ctx, 'institution:read') ? '/institutions' : undefined} />

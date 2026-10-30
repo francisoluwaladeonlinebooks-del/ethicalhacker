@@ -8,7 +8,7 @@ export type InstitutionRow = {
   id: string;
   code: string;
   name: string;
-  category: 'commercial_bank' | 'microfinance_bank' | 'payment_service_provider' | 'other';
+  category: InstitutionCategory;
   licence_number: string | null;
   risk_tier: string;
   city: string | null;
@@ -28,11 +28,51 @@ export type InstitutionRow = {
   last_assessment?: string | null;
 };
 
+/**
+ * Nigerian licensed-entity taxonomy.
+ *
+ * Categories follow the licensing structure used by the supervising regulator.
+ * Membership of a category never implies that any digital asset belongs to the
+ * institution, and never authorises testing.
+ */
+export type InstitutionCategory = (typeof INSTITUTION_CATEGORY_KEYS)[number];
+
+export const INSTITUTION_CATEGORY_KEYS = [
+  'commercial_bank','merchant_bank','non_interest_bank','microfinance_bank_national','microfinance_bank_state',
+  'microfinance_bank_tier1','microfinance_bank_tier2','payment_service_bank','primary_mortgage_bank',
+  'development_finance_institution','finance_company','bureau_de_change','mobile_money_operator',
+  'payment_solution_service_provider','switching_and_processing','payment_terminal_service_provider',
+  'payment_terminal_aggregator','super_agent','card_scheme','capital_market_operator','insurance_company',
+  'pension_operator','shared_infrastructure','third_party_service_provider','government_agency','other',
+] as const;
+
 export const INSTITUTION_CATEGORIES = [
-  { key: 'commercial_bank', label: 'Commercial Bank' },
-  { key: 'microfinance_bank', label: 'Microfinance Bank' },
-  { key: 'payment_service_provider', label: 'Payment Service Provider' },
-  { key: 'other', label: 'Other Approved Institution' },
+  { key: 'commercial_bank', label: 'Commercial bank', regulator: 'CBN' },
+  { key: 'merchant_bank', label: 'Merchant bank', regulator: 'CBN' },
+  { key: 'non_interest_bank', label: 'Non-interest (Islamic) bank', regulator: 'CBN' },
+  { key: 'microfinance_bank_national', label: 'Microfinance bank — national', regulator: 'CBN' },
+  { key: 'microfinance_bank_state', label: 'Microfinance bank — state', regulator: 'CBN' },
+  { key: 'microfinance_bank_tier1', label: 'Microfinance bank — Tier 1 unit', regulator: 'CBN' },
+  { key: 'microfinance_bank_tier2', label: 'Microfinance bank — Tier 2 unit', regulator: 'CBN' },
+  { key: 'payment_service_bank', label: 'Payment service bank', regulator: 'CBN' },
+  { key: 'primary_mortgage_bank', label: 'Primary mortgage bank', regulator: 'CBN' },
+  { key: 'development_finance_institution', label: 'Development finance institution', regulator: 'CBN' },
+  { key: 'finance_company', label: 'Finance company', regulator: 'CBN' },
+  { key: 'bureau_de_change', label: 'Bureau de change', regulator: 'CBN' },
+  { key: 'mobile_money_operator', label: 'Mobile money operator', regulator: 'CBN' },
+  { key: 'payment_solution_service_provider', label: 'Payment solution service provider', regulator: 'CBN' },
+  { key: 'switching_and_processing', label: 'Switching and processing company', regulator: 'CBN' },
+  { key: 'payment_terminal_service_provider', label: 'Payment terminal service provider', regulator: 'CBN' },
+  { key: 'payment_terminal_aggregator', label: 'Payment terminal aggregator', regulator: 'CBN' },
+  { key: 'super_agent', label: 'Super-agent / authorised agent', regulator: 'CBN' },
+  { key: 'card_scheme', label: 'Card scheme', regulator: 'CBN' },
+  { key: 'capital_market_operator', label: 'Capital market operator', regulator: 'SEC' },
+  { key: 'insurance_company', label: 'Insurance company or intermediary', regulator: 'NAICOM' },
+  { key: 'pension_operator', label: 'Pension operator', regulator: 'PenCom' },
+  { key: 'shared_infrastructure', label: 'Shared financial-sector infrastructure', regulator: 'CBN' },
+  { key: 'third_party_service_provider', label: 'Approved third-party technology or outsourced provider', regulator: 'CBN' },
+  { key: 'government_agency', label: 'Government agency', regulator: 'Other' },
+  { key: 'other', label: 'Other approved institution', regulator: 'Other' },
 ] as const;
 
 export function categoryLabel(value: string): string {

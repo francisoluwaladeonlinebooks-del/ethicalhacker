@@ -95,7 +95,19 @@ export function redactHeaders(headers: Record<string, string | string[]>): Recor
   return output;
 }
 
-/** Detect whether text still contains obvious sensitive identifiers. */
+/**
+ * Detect whether text still contains obvious sensitive identifiers.
+ *
+ * Used as a last line of defence before evidence is stored or returned: a match
+ * means the caller must redact (or refuse to store) rather than pass the text on.
+ */
 export function containsUnredactedSensitiveData(text: string): boolean {
-  return /-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./.test(text);
+  const patterns = [
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./,
+    /\bbearer\s+[A-Za-z0-9._~+/-]{16,}=*/i,
+    /\bAKIA[0-9A-Z]{16}\b/,
+    /\b(?:password|passwd|secret|api[_\-]?key|client[_\-]?secret)\s*[=:]\s*(?!\[REDACTED)[^\s"',;]{6,}/i,
+  ];
+  return patterns.some((pattern) => pattern.test(text));
 }
