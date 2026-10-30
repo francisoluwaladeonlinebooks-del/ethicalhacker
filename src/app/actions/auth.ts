@@ -47,7 +47,13 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 export type MfaState = { error?: string; info?: string };
 
 export async function verifyMfaAction(_prev: MfaState, formData: FormData): Promise<MfaState> {
-  const token = await readPendingCookie();
+  // The pending token is taken from the submitted form first and from the
+  // cookie second. A browser that withholds third-party cookies in an embedded
+  // view would otherwise lose the pending state between rendering the code page
+  // and submitting the code, and report a misleading "session expired".
+  const submitted = String(formData.get('challenge') ?? '').trim();
+  const cookieToken = await readPendingCookie();
+  const token = submitted || cookieToken;
   if (!token) redirect(withMessage('/login', { error: 'Your sign-in session expired. Enter your credentials again.' }));
   const code = String(formData.get('code') ?? '').trim();
   if (!/^\d{6}$/.test(code)) return { error: 'Enter the 6-digit code from your authenticator application.' };
@@ -58,7 +64,11 @@ export async function verifyMfaAction(_prev: MfaState, formData: FormData): Prom
   if (outcome.status === 'ok') {
     await setSessionCookies(outcome.token, outcome.csrf);
     await clearPendingCookie();
-    redirect('/');
+    // Confirm the session cookie actually survives the round trip. If the
+    // browser drops it (third-party cookie blocking in an embedded view), the
+    // user is told exactly that instead of being sent back to the sign-in page
+    // with no explanation.
+    redirect('/login/complete');
   }
   if (outcome.status === 'locked') return { error: outcome.reason };
 
