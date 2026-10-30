@@ -1,16 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { forwardedHostRepair } from '@/lib/proxy-origin';
 
 /**
- * Edge middleware: coarse, per-client request throttling.
+ * Edge middleware: coarse, per-client request throttling plus forwarded-host
+ * repair for deployments behind a proxy.
  *
- * Purpose: blunt the two cheapest abuse paths — credential stuffing against the
- * sign-in endpoints and bulk scraping of the API surface. It is deliberately
- * conservative and it is NOT the authorisation layer: every request is still
- * authenticated, authorised and scope-checked inside the application.
- *
- * The counter is in-process and resets on restart, which is appropriate for a
- * single-instance deployment. A multi-instance deployment must move the counter
- * to a shared store (Redis or the database) before relying on it.
+ * Throttling is deliberately conservative and it is NOT the authorisation
+ * layer: every request is still authenticated, authorised and scope-checked
+ * inside the application. The counter is in-process and resets on restart,
+ * which is appropriate for a single-instance deployment; a multi-instance
+ * deployment must move the counter to a shared store before relying on it.
  */
 
 const WINDOW_MS = 60_000;
@@ -46,13 +45,36 @@ function disabled(): boolean {
   return value === '1' || value === 'true';
 }
 
+/**
+ * Repair the forwarded host when a proxy forgets to pass it through. The
+ * decision itself lives in `@/lib/proxy-origin` so it is unit tested; see that
+ * module for why the repair is safe.
+ */
+function repairedForwardedHeaders(request: NextRequest): Headers | null {
+  const repaired = forwardedHostRepair({
+    fetchSite: request.headers.get('sec-fetch-site'),
+    origin: request.headers.get('origin'),
+    forwardedHost: request.headers.get('x-forwarded-host'),
+    host: request.headers.get('host'),
+  });
+  if (!repaired) return null;
+  const headers = new Headers(request.headers);
+  headers.set('x-forwarded-host', repaired);
+  return headers;
+}
+
+function proceed(request: NextRequest) {
+  const headers = repairedForwardedHeaders(request);
+  return headers ? NextResponse.next({ request: { headers } }) : NextResponse.next();
+}
+
 export function middleware(request: NextRequest) {
-  if (disabled()) return NextResponse.next();
+  if (disabled()) return proceed(request);
 
   const { pathname } = request.nextUrl;
   const method = request.method.toUpperCase();
   const rule = RULES.find((candidate) => candidate.match(pathname, method));
-  if (!rule) return NextResponse.next();
+  if (!rule) return proceed(request);
 
   const now = Date.now();
   prune(now);
@@ -61,11 +83,11 @@ export function middleware(request: NextRequest) {
 
   if (!bucket || now - bucket.windowStart > WINDOW_MS) {
     buckets.set(key, { windowStart: now, count: 1 });
-    return NextResponse.next();
+    return proceed(request);
   }
 
   bucket.count += 1;
-  if (bucket.count <= rule.limit) return NextResponse.next();
+  if (bucket.count <= rule.limit) return proceed(request);
 
   const retryAfter = Math.max(1, Math.ceil((WINDOW_MS - (now - bucket.windowStart)) / 1000));
   const accept = request.headers.get('accept') ?? '';

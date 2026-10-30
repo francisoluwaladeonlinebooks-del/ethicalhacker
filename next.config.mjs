@@ -17,6 +17,24 @@
  * X-Frame-Options cannot express a list; when it is not configured the strict
  * pair (`frame-ancestors 'none'` plus `X-Frame-Options: DENY`) is emitted.
  */
+/**
+ * Server Action origin allow-list.
+ *
+ * `*.e2b.app` is the sandboxed preview host this demonstration runs behind; the
+ * loopback entries cover local development. A real deployment behind its own
+ * proxy should set FICAP_ALLOWED_ORIGINS (comma separated) and may drop the
+ * preview entry, because an allow-listed origin may submit Server Actions.
+ * Cross-site submissions still cannot act on a session: `Lax` cookies are not
+ * sent on a cross-site POST, and every action re-checks its CSRF token.
+ */
+const defaultAllowedOrigins = ['*.e2b.app', 'localhost:3000', '127.0.0.1:3000'];
+const allowedOrigins = [
+  ...new Set([
+    ...defaultAllowedOrigins,
+    ...(process.env.FICAP_ALLOWED_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean),
+  ]),
+];
+
 const frameAncestors = (process.env.FICAP_FRAME_ANCESTORS ?? '').trim();
 const strictFraming = frameAncestors === '' || frameAncestors.toLowerCase() === 'none';
 const framingValue = strictFraming ? "'none'" : frameAncestors;
@@ -39,7 +57,17 @@ const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ['@electric-sql/pglite', 'pdfkit', 'exceljs'],
   experimental: {
-    serverActions: { bodySizeLimit: '25mb' },
+    serverActions: {
+      bodySizeLimit: '25mb',
+      // Next rejects a Server Action whose Origin host differs from the host it
+      // believes it is served from. Behind an embedding proxy that rewrites the
+      // Host header, that mismatch makes every form submission fail with
+      // "Invalid Server Actions request" - sign-in included. The middleware
+      // repairs the forwarded host for ordinary same-origin browser requests;
+      // this list covers browsers that do not send Sec-Fetch-Site. Anything
+      // beyond the hosted-preview domain belongs in FICAP_ALLOWED_ORIGINS.
+      allowedOrigins: allowedOrigins,
+    },
   },
   async headers() {
     return [

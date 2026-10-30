@@ -114,6 +114,13 @@ approval requires a substantive comment.
   report (created/updated/unchanged/conflicts/rejected) and queue conflicts. Imports
   never delete records, never create digital assets and never change a licence category
   silently.
+- **Sign-in behind a proxy.** Next.js refuses a Server Action when the request's `Origin` host does not
+  match the host it believes it is served from, which breaks every form submission on a proxy that
+  rewrites `Host`. Two narrow remedies are applied: the middleware restores the browser's own host
+  for `Sec-Fetch-Site: same-origin` requests (a header page script cannot forge, so a hostile
+  cross-origin page still fails the check), and `FICAP_ALLOWED_ORIGINS` names any additional
+  deployment hosts. Cross-site submissions cannot act on a session either way: a `Lax` cookie is not
+  sent on a cross-site POST and every action re-checks its CSRF token.
 - **Demonstration data is synthetic** and labelled as such in the interface and in
   exports. Institution names in demo mode are invented and must not be treated as real
   targets.

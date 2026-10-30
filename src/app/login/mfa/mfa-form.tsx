@@ -1,14 +1,36 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { cancelMfaAction, verifyMfaAction, type MfaState } from '@/app/actions/auth';
 import { FramedNotice } from '@/components/framed-notice';
 
 const initialState: MfaState = {};
 
+/** Seconds until the current one-time step ends (0 at the boundary). */
+function secondsUntilNextStep(): number {
+  return 30 - (Math.floor(Date.now() / 1000) % 30);
+}
+
 export function MfaForm({ demoCode }: { demoCode: string | null }) {
   const [state, action, pending] = useActionState(verifyMfaAction, initialState);
   const [code, setCode] = useState('');
+  const router = useRouter();
+  const [secondsLeft, setSecondsLeft] = useState(secondsUntilNextStep);
+
+  // A one-time code is only valid for its own 30-second step (plus one step of
+  // clock tolerance). The code rendered with this page is therefore re-rendered
+  // as each step rolls over, so a page left open for a minute cannot hand the
+  // user a code that has already expired.
+  useEffect(() => {
+    if (!demoCode) return;
+    const timer = setInterval(() => {
+      const remaining = secondsUntilNextStep();
+      setSecondsLeft(remaining);
+      if (remaining >= 30) router.refresh();
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [demoCode, router]);
 
   return (
     <div className="space-y-3">
@@ -56,7 +78,9 @@ export function MfaForm({ demoCode }: { demoCode: string | null }) {
             className="mt-2 flex w-full items-center justify-between rounded border border-amber-200 bg-white/80 px-2 py-1.5 font-mono text-sm text-amber-900 hover:bg-white"
           >
             <span className="tracking-[0.3em]">{demoCode}</span>
-            <span className="font-sans text-2xs font-semibold uppercase tracking-wide">Use code</span>
+            <span className="font-sans text-2xs font-semibold uppercase tracking-wide">
+              Use code · {secondsLeft}s left
+            </span>
           </button>
         </div>
       ) : null}
