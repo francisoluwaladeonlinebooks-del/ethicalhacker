@@ -278,6 +278,52 @@ src/lib/demo/              synthetic dataset (estate + registry)
 tests/                     unit tests and the CVSS v4.0 reference fixture
 ```
 
+## Design system
+
+The interface follows [`design.md`](./design.md), which is normative: tokens, type
+scale, geometry, component anatomy, the colour-independence rules for severity and
+status, and the encoding and motion constraints. Two consequences worth knowing
+before editing a screen:
+
+- **Tokens are roles, not colours.** `--ficap-ink-muted` is a role; `#556075` is an
+  implementation. Components reference roles, so a token change propagates.
+- **Contrast is tested, not promised.** `tests/design-tokens.test.ts` recomputes every
+  published contrast pair from `globals.css` and fails below the thresholds in the
+  document. It has already caught one regressed token.
+
+Typefaces are self-hosted (`@fontsource-variable/*`), so the content security policy
+keeps `font-src 'self'` and no visitor address is disclosed to a font CDN.
+
+## Verifying the shipped bundle
+
+```bash
+npm run build && npm run rea:verify
+```
+
+Seals each shared client chunk through REA `inspect-artifact` (content digest plus a
+sealed evidence id) and runs six policy rules over every JavaScript file under
+`.next/static`: loopback endpoints, browser token storage, dynamic code, shipped source
+maps, unknown absolute hosts and credential-shaped strings.
+
+The rules are FICAP's own. REA supplies the sealed artifact evidence; it does not decide
+what is acceptable for this product, and nothing in the report is described as a REA
+vulnerability finding. The report records how many files were sealed out of how many were
+scanned, and states that this is a static inspection — not a penetration test. A missing
+build exits non-zero rather than reporting a clean bundle.
+
+## Verifying sign-in
+
+```bash
+npm run start                 # in another terminal
+python3 scripts/verify-signin.py
+```
+
+Replays the real Server Action envelopes for all five seeded personas, over both the
+password-then-authenticator path and the demonstration shortcut, and asserts that each
+role lands on its own dashboard. It handles the two controls that legitimately reject
+a naive script: TOTP replay protection (a code cannot be reused inside its 30-second
+step) and the rate limiter (429 is the control working).
+
 ## Tests
 
 ```bash
