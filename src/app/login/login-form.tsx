@@ -83,33 +83,31 @@ export function LoginForm({ demoAccounts, demoPassword }: { demoAccounts: DemoAc
               };
 
               return (
-                <form key={account.email} action={directPersonaLoginAction} className="block">
-                  <input type="hidden" name="persona" value={account.email} />
-                  <button
-                    type="submit"
-                    className="group flex w-full flex-col gap-1 rounded-md border border-slate-200 bg-white p-2.5 text-left transition hover:border-seal-600 hover:bg-seal-50/30 hover:shadow-sm"
-                  >
-                    <div className="flex w-full items-center justify-between gap-2">
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-navy-900 group-hover:text-seal-800">
-                          {account.name}
-                        </span>
-                        <span className={`inline-block rounded border px-1.5 py-0.2 text-[10px] font-semibold ${info.tone}`}>
-                          {info.badge}
-                        </span>
+                <a
+                  key={account.email}
+                  href={`/api/auth/persona?email=${encodeURIComponent(account.email)}`}
+                  className="group flex w-full flex-col gap-1 rounded-md border border-slate-200 bg-white p-2.5 text-left transition hover:border-seal-600 hover:bg-seal-50/40 hover:shadow-sm"
+                >
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-navy-900 group-hover:text-seal-800">
+                        {account.name}
                       </span>
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-seal-700 group-hover:underline">
-                        Open {info.dashboard} →
+                      <span className={`inline-block rounded border px-1.5 py-0.2 text-[10px] font-semibold ${info.tone}`}>
+                        {info.badge}
                       </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-snug">
-                      {info.desc}
-                    </p>
-                    <span className="font-mono text-[10px] text-slate-600">
-                      {account.email}
                     </span>
-                  </button>
-                </form>
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-seal-700 group-hover:underline">
+                      Open {info.dashboard} →
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    {info.desc}
+                  </p>
+                  <span className="font-mono text-[10px] text-slate-600">
+                    {account.email}
+                  </span>
+                </a>
               );
             })}
           </div>

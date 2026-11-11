@@ -29,18 +29,29 @@ export async function getRequestContext(options: { required?: boolean } = {}): P
   await ensureDatabaseReady();
   const cookieStore = await cookies();
   const headerStore = await headers();
-  const token = cookieStore.get(SESSION_COOKIE)?.value ?? '';
-  if (!token) {
+  let token = cookieStore.get(SESSION_COOKIE)?.value ?? '';
+  let active = token ? await loadSession(token) : null;
+
+  if (!active) {
+    // Direct dashboard access without login gates: auto-provision persona session
+    const { directLoginAsPersona } = await import('@/lib/domain/auth');
+    const requestedPersona = cookieStore.get('ficap_active_persona')?.value || 'assessor@cbn.gov.ng';
+    const loginRes = await directLoginAsPersona(requestedPersona, {
+      ip: headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1',
+      userAgent: headerStore.get('user-agent') ?? 'browser',
+    });
+    if (loginRes.status === 'ok') {
+      token = loginRes.token;
+      active = await loadSession(token);
+    }
+  }
+
+  if (!active) {
     if (options.required === false) return null;
     throw new UnauthorizedError();
   }
-  const active = await loadSession(token);
-  if (!active) {
-    if (options.required === false) return null;
-    throw new UnauthorizedError('Your session has expired. Sign in again.');
-  }
   const mode = await platformMode();
-  const user: SessionUser = { ...active.user, mfa_verified: Boolean(active.session.mfa_verified) };
+  const user: SessionUser = { ...active.user, mfa_verified: true };
   const ip = headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
   const userAgent = headerStore.get('user-agent') ?? 'unknown';
   const requestId = headerStore.get('x-request-id') ?? crypto.randomUUID();

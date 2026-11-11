@@ -138,11 +138,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <p className="truncate text-2xs font-semibold text-white">{ctx.user.name}</p>
             <p className="mt-0.5 truncate text-[10px] text-navy-200">{ctx.user.role.replace(/_/g, ' ')}</p>
             <SidebarPersonaSwitcher currentRole={ctx.user.role} />
-            <form action={logoutAction} className="mt-2">
-              <button type="submit" className="w-full rounded border border-white/15 px-2 py-1 text-2xs font-medium text-navy-100 hover:bg-white/10">
-                Sign out
-              </button>
-            </form>
+            <a
+              href="/api/auth/persona?role=cbn_assessor"
+              className="mt-2 block w-full rounded border border-white/15 px-2 py-1 text-center text-2xs font-medium text-navy-100 transition hover:bg-white/10"
+            >
+              Reset to Assessor
+            </a>
           </div>
         </div>
       </aside>

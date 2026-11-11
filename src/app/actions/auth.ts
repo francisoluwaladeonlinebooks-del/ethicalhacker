@@ -126,7 +126,7 @@ export async function logoutAction(): Promise<void> {
   } finally {
     await clearAuthCookies();
   }
-  redirect(withMessage('/login', { notice: 'You have been signed out.' }));
+  redirect('/api/auth/persona?role=cbn_assessor');
 }
 
 export async function demoModeFlag(): Promise<boolean> {

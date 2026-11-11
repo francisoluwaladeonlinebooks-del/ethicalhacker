@@ -34,6 +34,8 @@ const defaultAllowedOrigins = [
   '*.run.app',
   '*.google.com',
   '*.aistudio.google.com',
+  'ais-dev-ecrs6uduidfimviailbqcw-182201287666.europe-west2.run.app',
+  'ais-pre-ecrs6uduidfimviailbqcw-182201287666.europe-west2.run.app',
 ];
 const allowedOrigins = [
   ...new Set([
@@ -42,18 +44,14 @@ const allowedOrigins = [
   ]),
 ];
 
-const frameAncestors = (process.env.FICAP_FRAME_ANCESTORS ?? '*').trim();
-const strictFraming = frameAncestors.toLowerCase() === 'none';
-const framingValue = strictFraming ? "'none'" : frameAncestors;
-
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "font-src 'self' data:",
-  "connect-src 'self'",
-  `frame-ancestors ${framingValue}`,
+  "connect-src 'self' https://api.osv.dev https://*.huggingface.co https://*.run.app",
+  "frame-ancestors *",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
@@ -67,13 +65,6 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '25mb',
-      // Next rejects a Server Action whose Origin host differs from the host it
-      // believes it is served from. Behind an embedding proxy that rewrites the
-      // Host header, that mismatch makes every form submission fail with
-      // "Invalid Server Actions request" - sign-in included. The middleware
-      // repairs the forwarded host for ordinary same-origin browser requests;
-      // this list covers browsers that do not send Sec-Fetch-Site. Anything
-      // beyond the hosted-preview domain belongs in FICAP_ALLOWED_ORIGINS.
       allowedOrigins: allowedOrigins,
     },
   },
@@ -84,19 +75,10 @@ const nextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
-          // X-Frame-Options cannot name a list of permitted parents, so it is
-          // only emitted alongside the strict policy; otherwise the CSP
-          // frame-ancestors directive is the single source of truth.
-          ...(strictFraming ? [{ key: 'X-Frame-Options', value: 'DENY' }] : []),
-          // HSTS is opt-in. It is only correct when the deployment owns the domain
-          // and terminates TLS for every subdomain it covers; emitting it from a
-          // shared preview host would pin unrelated subdomains in the operator's
-          // browser. Enable with FICAP_ENABLE_HSTS=1 in a real deployment.
           ...(process.env.FICAP_ENABLE_HSTS === '1' || process.env.FICAP_ENABLE_HSTS === 'true'
             ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
             : []),
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },
         ],
       },
