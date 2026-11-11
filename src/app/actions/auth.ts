@@ -103,15 +103,33 @@ export async function directPersonaLoginAction(formData: FormData): Promise<void
   redirect(withMessage('/login', { error: outcome.reason }));
 }
 
+/**
+ * Role switch, demonstration builds only.
+ *
+ * The acting session is passed into the domain call so that the "both accounts
+ * are demo accounts" rule is enforced server-side. Before that rule existed this
+ * endpoint let any signed-in user - including an institution contact - mint a
+ * session for any other role, platform administrator included.
+ */
 export async function switchPersonaAction(formData: FormData): Promise<void> {
   const persona = String(formData.get('persona') ?? formData.get('email') ?? '').trim();
   if (!persona) redirect('/');
+
+  const ctx = await getRequestContext({ required: false });
+  if (!ctx) redirect('/login');
+
   const meta = await requestMeta();
-  const outcome = await directLoginAsPersona(persona, meta);
+  const outcome = await directLoginAsPersona(persona, meta, {
+    is_demo: Boolean(ctx.user.is_demo),
+    role: ctx.user.role,
+    email: ctx.user.email,
+  });
+
   if (outcome.status === 'ok') {
     await setSessionCookies(outcome.token, outcome.csrf);
+    redirect('/');
   }
-  redirect('/');
+  redirect(withMessage('/', { error: outcome.reason }));
 }
 
 export async function cancelMfaAction(): Promise<void> {

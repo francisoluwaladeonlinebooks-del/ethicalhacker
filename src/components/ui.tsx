@@ -1,6 +1,23 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+/**
+ * FICAP primitives.
+ *
+ * These are the only components that know the design language; every screen
+ * composes them. Rules encoded here rather than in each page:
+ *
+ *  - a page title is display serif, with an optional italic second clause;
+ *  - a section is introduced by a numbered marker (design.md §6.1);
+ *  - severity carries a glyph and a word, never colour alone (§7);
+ *  - "not measured" is a distinct, neutral, dashed state (§7.5);
+ *  - the destructive button is a different shape from every other button (§6.2).
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Structure                                                                   */
+/* -------------------------------------------------------------------------- */
+
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`card ${className}`}>{children}</section>;
 }
@@ -31,28 +48,78 @@ export function CardBody({ children, className = '' }: { children: ReactNode; cl
   return <div className={`card-body ${className}`}>{children}</div>;
 }
 
-export function PageHeader({
-  title,
-  description,
-  actions,
-  meta,
+/** The reference's `01 —— LABEL` orientation device. */
+export function SectionMarker({
+  index,
+  label,
+  onField = false,
+  className = '',
 }: {
-  title: string;
-  description?: ReactNode;
-  actions?: ReactNode;
-  meta?: ReactNode;
+  index?: string | number;
+  label: string;
+  onField?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0">
-        <h1 className="text-lg font-semibold tracking-tight text-navy-900">{title}</h1>
-        {description ? <div className="mt-1 max-w-3xl text-xs leading-relaxed text-[var(--ficap-muted)]">{description}</div> : null}
-        {meta ? <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div> : null}
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+    <div className={`section-marker ${onField ? 'on-field' : ''} ${className}`}>
+      {index !== undefined ? <span className="marker-index">{String(index).padStart(2, '0')}</span> : null}
+      <span className="marker-rule" aria-hidden="true" />
+      <span className="marker-label">{label}</span>
     </div>
   );
 }
+
+/**
+ * Page header. `accent` renders the reference's italic second clause; it is
+ * display type and must never carry a finding, a score or a status.
+ */
+export function PageHeader({
+  title,
+  accent,
+  description,
+  actions,
+  meta,
+  eyebrow,
+  index,
+  scale = 'md',
+}: {
+  title: string;
+  accent?: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  meta?: ReactNode;
+  eyebrow?: string;
+  index?: string | number;
+  scale?: 'md' | 'lg';
+}) {
+  return (
+    <div className="mb-6">
+      {eyebrow ? <SectionMarker index={index} label={eyebrow} className="mb-3" /> : null}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className={scale === 'lg' ? 'display-lg text-navy-900' : 'display-md text-navy-900'}>
+            {title}
+            {accent ? (
+              <>
+                {' '}
+                <span className="display-italic text-seal-700">{accent}</span>
+              </>
+            ) : null}
+          </h1>
+          {description ? (
+            <div className="mt-2 max-w-prose text-[0.8125rem] leading-relaxed text-[var(--ficap-ink-muted)]">{description}</div>
+          ) : null}
+          {meta ? <div className="mt-3 flex flex-wrap items-center gap-2">{meta}</div> : null}
+        </div>
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Severity and status                                                         */
+/* -------------------------------------------------------------------------- */
 
 type Tone = 'neutral' | 'navy' | 'green' | 'amber' | 'red' | 'slate';
 
@@ -72,17 +139,57 @@ export function Badge({ children, tone = 'neutral', title }: { children: ReactNo
   );
 }
 
+/** Glyph per level — the redundant channel that survives colour loss. */
+const SEVERITY_GLYPH: Record<string, string> = {
+  critical: '◆',
+  high: '▲',
+  medium: '●',
+  low: '■',
+  info: '○',
+  none: '○',
+  unscored: '◇',
+};
+
+const SEVERITY_CLASS: Record<string, string> = {
+  critical: 'badge-red',
+  high: 'badge-red',
+  medium: 'badge-amber',
+  low: 'badge-green',
+  info: 'badge-neutral',
+  none: 'badge-green',
+  unscored: 'badge-unassessed',
+};
+
+/**
+ * Severity badge. Colour, glyph, word and (for unscored) border style are all
+ * present, so the level is legible in greyscale, in forced-colours mode and to
+ * a screen reader. `unscored` is not a synonym for `low`.
+ */
 export function SeverityBadge({ severity, score }: { severity?: string | null; score?: number | null }) {
   const key = (severity ?? 'unscored').toLowerCase();
-  const tone: Tone = key === 'critical' ? 'red' : key === 'high' ? 'red' : key === 'medium' ? 'amber' : key === 'low' ? 'green' : key === 'none' ? 'green' : 'neutral';
+  const cls = SEVERITY_CLASS[key] ?? 'badge-unassessed';
   const label = key === 'unscored' ? 'unscored' : key;
   return (
-    <span className={`badge ${tone === 'red' ? 'badge-red' : tone === 'amber' ? 'badge-amber' : tone === 'green' ? 'badge-green' : 'badge-neutral'}`}>
-      {label}
+    <span className={`badge ${cls}`} title={severity ? `Severity: ${label}` : 'No severity score recorded'}>
+      <span aria-hidden="true" className="text-[0.6rem] leading-none">
+        {SEVERITY_GLYPH[key] ?? '◇'}
+      </span>
+      <span>{label}</span>
       {score != null ? <span className="font-mono text-[10px] opacity-80">{Number(score).toFixed(1)}</span> : null}
     </span>
   );
 }
+
+/** States that mean "we could not measure this" — never green, never red. */
+const UNMEASURED = new Set([
+  'not_assessed',
+  'blocked',
+  'skipped',
+  'untested',
+  'unavailable',
+  'pending_official_import',
+  'not_available',
+]);
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, Tone> = {
@@ -110,10 +217,8 @@ export function StatusBadge({ status }: { status: string }) {
     cancelling: 'amber',
     succeeded: 'green',
     failed: 'red',
-    blocked: 'amber',
     pending: 'slate',
     passed: 'green',
-    skipped: 'neutral',
     error: 'red',
     in_review: 'amber',
     changes_requested: 'amber',
@@ -122,14 +227,12 @@ export function StatusBadge({ status }: { status: string }) {
     active: 'green',
     suspended: 'red',
     assessment_pending: 'amber',
-    remediation: 'navy',
     void: 'neutral',
     in_progress: 'navy',
     submitted: 'amber',
     verified: 'green',
     overdue: 'red',
     open: 'slate',
-    not_assessed: 'neutral',
     evidence_required: 'amber',
     partially_supported: 'navy',
     supported: 'green',
@@ -148,15 +251,43 @@ export function StatusBadge({ status }: { status: string }) {
     disabled: 'neutral',
     degraded: 'amber',
     seeded: 'slate',
-    pending_official_import: 'amber',
     imported: 'navy',
     expired: 'neutral',
     revoked: 'red',
   };
   const tone = map[status] ?? 'neutral';
   const label = status.replace(/_/g, ' ');
-  return <Badge tone={tone}>{label}</Badge>;
+
+  if (UNMEASURED.has(status)) {
+    return (
+      <span className="badge badge-unassessed" title="This item was not measured. It is not a pass and not a failure.">
+        <span aria-hidden="true" className="text-[0.55rem] leading-none">
+          ◇
+        </span>
+        {label}
+      </span>
+    );
+  }
+
+  const dot: Record<Tone, string> = {
+    neutral: 'bg-slate-400',
+    navy: 'bg-navy-600',
+    green: 'bg-seal-600',
+    amber: 'bg-amber-500',
+    red: 'bg-risk-critical',
+    slate: 'bg-slate-500',
+  };
+  return (
+    <span className={`badge badge-${tone}`}>
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
+      {label}
+    </span>
+  );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Metrics                                                                     */
+/* -------------------------------------------------------------------------- */
 
 export function StatCard({
   label,
@@ -171,27 +302,66 @@ export function StatCard({
   tone?: Tone;
   href?: string;
 }) {
-  const border: Record<Tone, string> = {
-    neutral: 'border-l-slate-300',
-    navy: 'border-l-navy-700',
-    green: 'border-l-seal-600',
-    amber: 'border-l-amber-500',
-    red: 'border-l-risk-critical',
-    slate: 'border-l-slate-400',
+  const mark: Record<Tone, string> = {
+    neutral: 'text-slate-300',
+    navy: 'text-navy-300',
+    green: 'text-seal-500',
+    amber: 'text-amber-500',
+    red: 'text-risk-critical',
+    slate: 'text-slate-400',
   };
   const content = (
-    <div className={`card border-l-4 ${border[tone]} px-4 py-3 transition-shadow hover:shadow`}>
-      <p className="text-2xs font-semibold uppercase tracking-wider text-[var(--ficap-muted)]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold leading-none tracking-tight text-navy-900">{value}</p>
-      {hint ? <p className="mt-1.5 text-2xs leading-snug text-[var(--ficap-muted)]">{hint}</p> : null}
+    <div className="card group px-4 py-3.5 transition-colors hover:border-[var(--ficap-border-strong)]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="eyebrow">{label}</p>
+        <span aria-hidden="true" className={`text-[0.5rem] leading-none ${mark[tone]}`}>
+          ●
+        </span>
+      </div>
+      <p className="mt-2 font-display text-[1.75rem] font-medium leading-none tracking-tight text-navy-900">{value}</p>
+      {hint ? <p className="mt-2 text-2xs leading-snug text-[var(--ficap-ink-muted)]">{hint}</p> : null}
     </div>
   );
   return href ? (
-    <Link href={href} className="block focus-visible:rounded-lg">
+    <Link href={href} className="block rounded-md">
       {content}
     </Link>
   ) : (
     content
+  );
+}
+
+/**
+ * The reference's capsule stat rail: icon · numeral · caption, hairline divided.
+ * Used only on the navy field, at most four figures per band. Every figure is
+ * expected to carry its own qualification in `note`.
+ */
+export function StatRail({
+  items,
+  className = '',
+}: {
+  items: { label: string; value: ReactNode; note?: string; icon?: ReactNode }[];
+  className?: string;
+}) {
+  return (
+    <dl
+      className={`flex flex-wrap items-stretch divide-y divide-white/10 rounded-lg border border-white/10 sm:flex-nowrap sm:divide-x sm:divide-y-0 ${className}`}
+    >
+      {items.map((item) => (
+        <div key={item.label} className="flex flex-1 items-center gap-3 px-4 py-3">
+          {item.icon ? (
+            <span aria-hidden="true" className="text-white/40">
+              {item.icon}
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <dd className="font-display text-lg font-medium leading-none text-white">{item.value}</dd>
+            <dt className="mt-1 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-navy-200">{item.label}</dt>
+            {item.note ? <p className="mt-0.5 text-[0.6rem] text-navy-300">{item.note}</p> : null}
+          </div>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -219,17 +389,35 @@ export function Bar({
       <div className="h-1.5 w-full min-w-[40px] overflow-hidden rounded-full bg-slate-100" role="img" aria-label={label ?? `${value} of ${max}`}>
         <div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="w-8 shrink-0 text-right font-mono text-2xs text-[var(--ficap-muted)]">{value}</span>
+      <span className="w-8 shrink-0 text-right font-mono text-2xs text-[var(--ficap-ink-muted)]">{value}</span>
     </div>
   );
 }
 
+export function ProgressBar({ value, tone = 'navy' }: { value: number; tone?: 'navy' | 'green' | 'amber' | 'red' }) {
+  const colors = { navy: 'bg-navy-700', green: 'bg-seal-600', amber: 'bg-amber-500', red: 'bg-risk-critical' };
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+      </div>
+      <span className="w-9 shrink-0 text-right font-mono text-2xs text-[var(--ficap-ink-muted)]">{Math.round(value)}%</span>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Feedback                                                                    */
+/* -------------------------------------------------------------------------- */
+
 export function EmptyState({ title, description, action }: { title: string; description?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-[#d3d8e0] bg-[#fafbfc] px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-navy-800">{title}</p>
-      {description ? <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--ficap-muted)]">{description}</p> : null}
-      {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
+    <div className="rounded-md border border-dashed border-[var(--ficap-border-strong)] bg-[var(--ficap-surface-sunken)] px-6 py-12 text-center">
+      <p className="display-md text-navy-900">{title}</p>
+      {description ? (
+        <p className="mx-auto mt-2 max-w-prose text-xs leading-relaxed text-[var(--ficap-ink-muted)]">{description}</p>
+      ) : null}
+      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
   );
 }
@@ -239,27 +427,45 @@ export function Flash({ notice, error }: { notice?: string | null; error?: strin
   return (
     <div className="mb-3 space-y-2">
       {error ? (
-        <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">
-          <span className="font-semibold">Action not completed. </span>
-          {error}
+        <div role="alert" className="flex gap-2 rounded-sm border border-[#e4bfc9] bg-[#fcf0f3] px-3 py-2 text-xs leading-relaxed text-[#7d1029]">
+          <span aria-hidden="true" className="text-[0.6rem] leading-4">
+            ▲
+          </span>
+          <span>
+            <span className="font-semibold">Action not completed. </span>
+            {error}
+          </span>
         </div>
       ) : null}
       {notice ? (
-        <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-          {notice}
+        <div role="status" className="flex gap-2 rounded-sm border border-[#b9ddd6] bg-[#ecf7f4] px-3 py-2 text-xs leading-relaxed text-[#0a5b52]">
+          <span aria-hidden="true" className="text-[0.6rem] leading-4">
+            ✓
+          </span>
+          <span>{notice}</span>
         </div>
       ) : null}
     </div>
   );
 }
 
-export function TableWrap({ children, maxHeight }: { children: ReactNode; maxHeight?: string }) {
+export function TableWrap({ children, maxHeight, label }: { children: ReactNode; maxHeight?: string; label?: string }) {
   return (
-    <div className="scrollbar-thin overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
+    <div
+      className="scrollbar-thin overflow-x-auto"
+      style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
+      role="region"
+      aria-label={label ?? 'Scrollable data table'}
+      tabIndex={0}
+    >
       {children}
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Forms and data                                                              */
+/* -------------------------------------------------------------------------- */
 
 export function Field({
   label,
@@ -281,10 +487,15 @@ export function Field({
     <div className={spanClass}>
       <label className="label" htmlFor={name}>
         {label}
-        {required ? <span className="ml-1 text-risk-critical">*</span> : null}
+        {required ? (
+          <span className="ml-1 text-risk-critical" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+        {required ? <span className="sr-only"> (required)</span> : null}
       </label>
-      <div className="mt-1">{children}</div>
-      {hint ? <p className="mt-1 text-2xs leading-snug text-[var(--ficap-muted)]">{hint}</p> : null}
+      <div className="mt-1.5">{children}</div>
+      {hint ? <p className="mt-1.5 text-2xs leading-snug text-[var(--ficap-ink-muted)]">{hint}</p> : null}
     </div>
   );
 }
@@ -295,7 +506,7 @@ export function DescriptionList({ items }: { items: { label: string; value: Reac
       {items.map((item) => (
         <div key={item.label} className="contents">
           <dt>{item.label}</dt>
-          <dd>{item.value ?? <span className="text-[var(--ficap-muted)]">not recorded</span>}</dd>
+          <dd>{item.value ?? <span className="text-[var(--ficap-ink-muted)]">not recorded</span>}</dd>
         </div>
       ))}
     </dl>
@@ -304,11 +515,18 @@ export function DescriptionList({ items }: { items: { label: string; value: Reac
 
 export function DataQualityNote({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-md border border-[#e3e6ec] bg-[#fafbfc] px-3 py-2 text-2xs leading-relaxed text-[var(--ficap-muted)]">
-      {children}
+    <p className="flex gap-2 rounded-sm border border-[var(--ficap-border)] bg-[var(--ficap-surface-sunken)] px-3 py-2 text-2xs leading-relaxed text-[var(--ficap-ink-muted)]">
+      <span aria-hidden="true" className="text-[0.6rem] leading-4 text-[var(--ficap-ink-faint)]">
+        ◇
+      </span>
+      <span>{children}</span>
     </p>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Formatting                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export function formatDate(value: string | Date | null | undefined, withTime = false): string {
   if (!value) return '—';
@@ -342,7 +560,7 @@ export function Pagination({
 }) {
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
   if (total <= pageSize) {
-    return <p className="px-1 py-2 text-2xs text-[var(--ficap-muted)]">{total} record{total === 1 ? '' : 's'}</p>;
+    return <p className="px-1 py-2 text-2xs text-[var(--ficap-ink-muted)]">{total} record{total === 1 ? '' : 's'}</p>;
   }
   const link = (target: number) => {
     const query = new URLSearchParams();
@@ -351,7 +569,7 @@ export function Pagination({
     return `${basePath}?${query.toString()}`;
   };
   return (
-    <nav className="flex items-center justify-between gap-3 px-1 py-2 text-2xs text-[var(--ficap-muted)]" aria-label="Pagination">
+    <nav className="flex items-center justify-between gap-3 px-1 py-2 text-2xs text-[var(--ficap-ink-muted)]" aria-label="Pagination">
       <span>
         Showing {(page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)} of {total}
       </span>
@@ -367,18 +585,6 @@ export function Pagination({
         </Link>
       </div>
     </nav>
-  );
-}
-
-export function ProgressBar({ value, tone = 'navy' }: { value: number; tone?: 'navy' | 'green' | 'amber' | 'red' }) {
-  const colors = { navy: 'bg-navy-700', green: 'bg-seal-600', amber: 'bg-amber-500', red: 'bg-risk-critical' };
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-      </div>
-      <span className="w-9 shrink-0 text-right font-mono text-2xs text-[var(--ficap-muted)]">{Math.round(value)}%</span>
-    </div>
   );
 }
 

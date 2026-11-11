@@ -122,24 +122,39 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--ficap-bg)]">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-navy-950 px-3 py-4 text-white lg:flex">
-        <Link href="/" className="mb-2 flex items-center gap-2 px-1.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-2xs font-bold">CB</span>
-          <span>
-            <span className="block text-2xs font-semibold uppercase tracking-[0.14em] text-navy-300">Central Bank of Nigeria</span>
-            <span className="block text-xs font-semibold tracking-tight">FICAP</span>
+
+      {/* ------------------------------------------------------------- sidebar */}
+      <aside className="no-print sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col overflow-y-auto bg-[var(--ficap-field)] px-3 py-5 text-white lg:flex">
+        <Link href="/" className="mb-2 flex items-center gap-3 px-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-sm border border-white/20 font-display text-[11px] font-semibold tracking-tight text-warm-200">
+            CB
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-navy-300">Central Bank of Nigeria</span>
+            <span className="mt-0.5 block font-display text-base font-medium leading-none tracking-tight text-white">FICAP</span>
           </span>
         </Link>
+        <div className="mx-2 mb-1 mt-4 h-px bg-white/10" />
         <SideNav groups={groups} />
         <div className="mt-auto pt-6">
-          <div className="rounded-md border border-white/10 bg-white/5 p-2.5">
-            <p className="truncate text-2xs font-semibold text-white">{ctx.user.name}</p>
-            <p className="mt-0.5 truncate text-[10px] text-navy-200">{ctx.user.role.replace(/_/g, ' ')}</p>
-            <SidebarPersonaSwitcher currentRole={ctx.user.role} />
-            <form action={logoutAction} className="mt-2">
-              <button type="submit" className="w-full rounded border border-white/15 px-2 py-1 text-2xs font-medium text-navy-100 hover:bg-white/10">
+          <div className="rounded-sm border border-white/10 px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold uppercase text-white">
+                {ctx.user.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-2xs font-semibold text-white">{ctx.user.name}</p>
+                <p className="truncate text-[10px] capitalize text-navy-300">{ctx.user.role.replace(/_/g, ' ')}</p>
+              </div>
+            </div>
+            <SidebarPersonaSwitcher currentRole={ctx.user.role} demo={ctx.mode === 'demo'} />
+            <form action={logoutAction} className="mt-3">
+              <button
+                type="submit"
+                className="w-full rounded-pill border border-white/15 px-2 py-1.5 text-2xs font-medium text-navy-100 transition-colors hover:bg-white/10"
+              >
                 Sign out
               </button>
             </form>
@@ -147,34 +162,60 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
+      {/* --------------------------------------------------------------- frame */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white px-4 py-2.5 lg:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="lg:hidden text-xs font-semibold tracking-tight text-navy-900">FICAP</span>
-            <span
-              className={`badge ${ctx.mode === 'demo' ? 'badge-amber' : 'badge-green'}`}
-              title={ctx.mode === 'demo' ? 'Synthetic records only. No live institution data or system is contacted.' : 'Live supervisory data.'}
-            >
-              {ctx.mode === 'demo' ? 'Demonstration data' : 'Live mode'}
-            </span>
-            <span className="hidden text-2xs text-[var(--ficap-muted)] sm:inline">
-              Assessment window enforced · evidence encrypted · audit append-only
-            </span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <TopNavPersonaSwitcher currentRole={ctx.user.role} />
-            <span className="hidden text-2xs text-[var(--ficap-muted)] md:inline border-l border-slate-200 pl-3">
-              {ctx.user.email}
-            </span>
-            <Link href="/" className="btn btn-secondary btn-xs">Overview</Link>
+        <header className="no-print sticky top-0 z-20 border-b border-[var(--ficap-border)] bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              {/* Small screens get the same navigation, without JavaScript. */}
+              <details className="relative lg:hidden">
+                <summary className="btn btn-secondary btn-xs cursor-pointer list-none">Menu</summary>
+                <div className="absolute left-0 top-9 z-30 max-h-[70vh] w-64 overflow-y-auto rounded-sm bg-[var(--ficap-field)] px-3 py-3 shadow-float">
+                  <SideNav groups={groups} />
+                </div>
+              </details>
+
+              <span
+                className={`badge ${ctx.mode === 'demo' ? 'badge-amber' : 'badge-green'}`}
+                title={
+                  ctx.mode === 'demo'
+                    ? 'Synthetic records only. No live institution data or system is contacted.'
+                    : 'Live supervisory data.'
+                }
+              >
+                <span aria-hidden="true" className="text-[0.5rem] leading-none">●</span>
+                {ctx.mode === 'demo' ? 'Demonstration data' : 'Live data'}
+              </span>
+
+              <span className="hidden items-center gap-2 text-2xs text-[var(--ficap-ink-faint)] sm:flex">
+                <span aria-hidden="true">·</span> Assessment window enforced
+                <span aria-hidden="true">·</span> Evidence encrypted
+                <span aria-hidden="true">·</span> Audit append-only
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <TopNavPersonaSwitcher currentRole={ctx.user.role} demo={ctx.mode === 'demo'} />
+              <span className="hidden border-l border-[var(--ficap-border)] pl-3 font-mono text-[10px] text-[var(--ficap-ink-faint)] md:inline">
+                {ctx.user.email}
+              </span>
+              <Link href="/" className="btn btn-secondary btn-xs">Overview</Link>
+            </div>
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-5">{children}</main>
-        <footer className="no-print border-t border-[var(--ficap-border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--ficap-muted)] lg:px-6">
-          FICAP — Financial Institution Cybersecurity Assurance Platform. Access is restricted to authorised users; every action is
-          recorded in a hash-chained audit trail. Findings reflect the configuration observed within the approved testing window and
-          checks that did not run are reported as not assessed.
+
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8">
+          {children}
+        </main>
+
+        <footer className="no-print border-t border-[var(--ficap-border)] bg-[var(--ficap-surface)] px-4 py-4 text-[10px] leading-relaxed text-[var(--ficap-ink-faint)] lg:px-8">
+          <p className="max-w-prose">
+            FICAP — Financial Institution Cybersecurity Assurance Platform. Access is restricted to authorised users; every action is
+            recorded in a hash-chained audit trail. Findings reflect the configuration observed within the approved testing window, and
+            checks that did not run are reported as not assessed.
+          </p>
         </footer>
+
         {/* CSRF double-submit value for client-side fetches; matches the httpOnly session. */}
         <meta name="ficap-csrf" content={csrf} />
       </div>

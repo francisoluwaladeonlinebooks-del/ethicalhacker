@@ -8,7 +8,11 @@ const ALL_PERSONAS = [
   { role: 'platform_admin', label: 'Admin', email: 'admin@cbn.gov.ng', short: 'Admin' },
 ];
 
-export function TopNavPersonaSwitcher({ currentRole }: { currentRole: string }) {
+export function TopNavPersonaSwitcher({ currentRole, demo }: { currentRole: string; demo: boolean }) {
+  // A role switch that mints a session for another account is a demonstration
+  // affordance. Outside demonstration mode the control is not rendered, and the
+  // server refuses the request regardless (see switchPersonaAction).
+  if (!demo) return null;
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
       <span className="hidden text-[11px] font-semibold text-slate-500 xl:inline">Persona:</span>
@@ -20,7 +24,7 @@ export function TopNavPersonaSwitcher({ currentRole }: { currentRole: string }) 
               <input type="hidden" name="persona" value={p.email} />
               <button
                 type="submit"
-                title={`Switch persona to ${p.label} (${p.email})`}
+                title={`Demonstration only: view the platform as ${p.label} (${p.email}) without re-authenticating`}
                 className={`rounded px-2 py-0.5 text-[11px] font-medium transition ${
                   isActive
                     ? 'bg-seal-600 text-white font-bold shadow-2xs'
@@ -38,10 +42,11 @@ export function TopNavPersonaSwitcher({ currentRole }: { currentRole: string }) 
   );
 }
 
-export function SidebarPersonaSwitcher({ currentRole }: { currentRole: string }) {
+export function SidebarPersonaSwitcher({ currentRole, demo }: { currentRole: string; demo: boolean }) {
+  if (!demo) return null;
   return (
     <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
-      <p className="text-[10px] uppercase tracking-wider text-navy-300 font-semibold">Switch Persona</p>
+      <p className="text-[10px] uppercase tracking-wider text-navy-300 font-semibold" title="Demonstration builds only">Demo role switch</p>
       <div className="grid grid-cols-2 gap-1">
         {ALL_PERSONAS.map((p) => {
           const isActive = currentRole === p.role;

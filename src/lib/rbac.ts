@@ -258,6 +258,12 @@ export type SessionUser = {
   institution_id: string | null;
   job_title?: string | null;
   mfa_verified: boolean;
+  /**
+   * Present only for seeded demonstration accounts. Carried on the session user
+   * so that a demo-only affordance (the persona switch) can be refused on the
+   * server rather than trusted to be hidden by the interface.
+   */
+  is_demo?: boolean;
   grantedPermissions?: Permission[];
 };
 

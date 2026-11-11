@@ -2,16 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   FICAP design tokens  —  see design.md (normative)
+
+   Components reference roles, never raw hex. Legacy aliases at the end of this
+   block keep the existing screens compiling while they migrate: every one of
+   them resolves to a new role, so nothing renders with a retired colour.
+   --------------------------------------------------------------------------- */
+
 :root {
-  --ficap-bg: #f5f6f8;
+  /* Substrate */
+  --ficap-bg: #f4f5f7;
   --ficap-surface: #ffffff;
-  --ficap-border: #e3e6ec;
-  --ficap-text: #182134;
-  --ficap-muted: #5b6577;
-  --ficap-navy: #0d1a2c;
-  --ficap-navy-900: #0b1c33;
+  --ficap-surface-sunken: #fafafb;
+  --ficap-border: #e4e6eb;
+  --ficap-border-strong: #cbd0d9;
+
+  /* Ink */
+  --ficap-ink: #101828;
+  --ficap-ink-muted: #556075;
+  --ficap-ink-faint: #667180;
+  --ficap-ink-inverse: #f7f8fa;
+  --ficap-ink-inverse-muted: #a9b4c6;
+
+  /* Field — the deep navy */
+  --ficap-field: #0b1b2e;
+  --ficap-field-raised: #132741;
+  --ficap-field-deep: #07121f;
+  --ficap-field-line: rgba(255, 255, 255, 0.1);
+
+  /* Accents */
+  --ficap-accent: #0e7c71;
+  --ficap-accent-hover: #0a6158;
+  --ficap-warm: #e8d5b7;
+  --ficap-warm-ink: #2a2116;
   --ficap-focus: #1d4ed8;
-  --ficap-accent: #0f766e;
+
+  /* Severity — colour is one of four redundant channels (see design.md §7) */
+  --sev-critical: #8e1230;
+  --sev-high: #a8410f;
+  --sev-medium: #8a5a06;
+  --sev-low: #0e7c71;
+  --sev-info: #4a5568;
+
+  /* Geometry */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* Elevation — floating layers only */
+  --shadow-float: 0 24px 48px -24px rgba(11, 27, 46, 0.35), 0 0 0 1px rgba(11, 27, 46, 0.06);
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Type */
+  --font-display: 'Playfair Display Variable', 'Playfair Display', ui-serif, Georgia, serif;
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* ---- Legacy aliases (migrating screens) ---- */
+  --ficap-text: var(--ficap-ink);
+  --ficap-muted: var(--ficap-ink-muted);
+  --ficap-fg: var(--ficap-ink);
+  --ficap-surface-2: var(--ficap-surface-sunken);
+  --ficap-navy: var(--ficap-field);
+  --ficap-navy-900: var(--ficap-field-deep);
 }
 
 html {
@@ -19,129 +78,485 @@ html {
 }
 
 body {
-  @apply bg-[var(--ficap-bg)] text-[var(--ficap-text)] antialiased;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  background: var(--ficap-bg);
+  color: var(--ficap-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular figures wherever a number is read as a value. */
+.tnum,
+table,
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }
 
 *:focus-visible {
-  @apply outline-none ring-2 ring-seal-600 ring-offset-2 ring-offset-white;
+  outline: 2px solid var(--ficap-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 ::selection {
-  @apply bg-navy-200 text-navy-900;
+  background: #cfe9e5;
+  color: #0b1b2e;
 }
 
 @layer components {
+  /* ---------------------------------------------------------------- display */
+  .display-xl {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+  .display-lg {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    font-weight: 500;
+  }
+  .display-md {
+    font-family: var(--font-display);
+    font-size: 1.875rem;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+  .display-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+  }
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ficap-ink-muted);
+  }
+
+  /* The reference's numbered section marker: 01 —— LABEL */
+  .section-marker {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-marker > .marker-index {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--ficap-ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .section-marker > .marker-rule {
+    height: 1px;
+    width: 2.5rem;
+    background: var(--ficap-border-strong);
+  }
+  .section-marker > .marker-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ficap-ink-muted);
+  }
+  .section-marker.on-field > .marker-index {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .section-marker.on-field > .marker-rule {
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .section-marker.on-field > .marker-label {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  /* ---------------------------------------------------------------- panels */
   .card {
-    @apply rounded-lg border border-[var(--ficap-border)] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)];
+    border-radius: var(--r-md);
+    border: 1px solid var(--ficap-border);
+    background: var(--ficap-surface);
+    box-shadow: none;
   }
   .card-header {
-    @apply flex flex-wrap items-start justify-between gap-3 border-b border-[var(--ficap-border)] px-4 py-3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--ficap-border);
+    padding: 0.875rem 1.125rem;
   }
   .card-title {
-    @apply text-sm font-semibold tracking-tight text-navy-900;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ficap-ink);
   }
   .card-subtitle {
-    @apply mt-0.5 text-xs text-[var(--ficap-muted)];
+    margin-top: 0.125rem;
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    color: var(--ficap-ink-muted);
   }
   .card-body {
-    @apply px-4 py-3;
+    padding: 1rem 1.125rem;
   }
+  .panel-flat {
+    border-radius: var(--r-md);
+    border: 1px solid var(--ficap-border);
+    background: var(--ficap-surface);
+  }
+
+  /* ---------------------------------------------------------------- forms */
   .label {
-    @apply block text-2xs font-semibold uppercase tracking-wider text-[var(--ficap-muted)];
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ficap-ink-muted);
   }
   .input,
   .select,
   .textarea {
-    @apply w-full rounded-md border border-[#cfd5df] bg-white px-2.5 py-1.5 text-sm text-[var(--ficap-text)] shadow-sm placeholder:text-[#96a0b0] focus:border-seal-600 focus:outline-none focus:ring-1 focus:ring-seal-600 disabled:cursor-not-allowed disabled:bg-slate-50;
+    width: 100%;
+    border-radius: var(--r-xs);
+    border: 1px solid var(--ficap-border-strong);
+    background: var(--ficap-surface);
+    padding: 0.5rem 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--ficap-ink);
+    box-shadow: none;
+    transition: border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+  .input::placeholder,
+  .textarea::placeholder {
+    color: var(--ficap-ink-faint);
+  }
+  .input:focus,
+  .select:focus,
+  .textarea:focus {
+    border-color: var(--ficap-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 124, 113, 0.16);
+  }
+  .input:disabled,
+  .select:disabled,
+  .textarea:disabled {
+    cursor: not-allowed;
+    background: var(--ficap-surface-sunken);
+    color: var(--ficap-ink-faint);
   }
   .textarea {
-    @apply min-h-[80px] leading-relaxed;
+    min-height: 80px;
+    line-height: 1.6;
   }
+
+  /* ---------------------------------------------------------------- buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--r-pill);
+    border: 1px solid transparent;
+    padding: 0 0.875rem;
+    min-height: 2.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
   .btn-primary {
-    @apply border-navy-800 bg-navy-800 text-white hover:bg-navy-900;
+    background: var(--ficap-accent);
+    border-color: var(--ficap-accent);
+    color: #ffffff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--ficap-accent-hover);
+    border-color: var(--ficap-accent-hover);
   }
   .btn-secondary {
-    @apply border-[#cfd5df] bg-white text-navy-800 hover:bg-slate-50;
+    background: var(--ficap-surface);
+    border-color: var(--ficap-border-strong);
+    color: var(--ficap-ink);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--ficap-surface-sunken);
+    border-color: #b3bac6;
   }
   .btn-accent {
-    @apply border-seal-600 bg-seal-600 text-white hover:bg-seal-700;
+    background: var(--ficap-warm);
+    border-color: var(--ficap-warm);
+    color: var(--ficap-warm-ink);
   }
+  .btn-accent:hover:not(:disabled) {
+    background: #dfc7a2;
+    border-color: #dfc7a2;
+  }
+  /* Destructive: deliberately NOT the pill. A different shape, a different
+     place, and always paired with a named confirmation (design.md §6.2). */
   .btn-danger {
-    @apply border-risk-critical bg-risk-critical text-white hover:bg-[#88102f];
+    border-radius: var(--r-xs);
+    background: #ffffff;
+    border: 1px solid var(--sev-critical);
+    color: var(--sev-critical);
+    box-shadow: inset 0 0 0 1px rgba(142, 18, 48, 0.08);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--sev-critical);
+    color: #ffffff;
   }
   .btn-ghost {
-    @apply border-transparent bg-transparent text-navy-700 hover:bg-slate-100;
+    background: transparent;
+    border-color: transparent;
+    color: var(--ficap-ink-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: rgba(16, 24, 40, 0.05);
+    color: var(--ficap-ink);
   }
   .btn-xs {
-    @apply px-2 py-1 text-2xs;
+    min-height: 1.75rem;
+    padding: 0 0.625rem;
+    font-size: 0.6875rem;
   }
+  /* Primary call to action with the reference's circular arrow badge. */
+  .btn-hero {
+    min-height: 2.75rem;
+    padding: 0 0.75rem 0 1.25rem;
+    font-size: 0.8125rem;
+  }
+  .btn-hero .arrow-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--r-pill);
+    background: rgba(255, 255, 255, 0.16);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  .btn-hero:hover .arrow-badge {
+    transform: translateX(2px);
+  }
+  .btn-quiet {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ficap-ink);
+    padding: 0.25rem 0;
+  }
+  .btn-quiet:hover {
+    color: var(--ficap-accent);
+  }
+
+  /* ---------------------------------------------------------------- tables */
   .table {
-    @apply w-full border-collapse text-left text-xs;
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.75rem;
   }
   .table thead th {
-    @apply sticky top-0 z-10 border-b border-[var(--ficap-border)] bg-[#fafbfc] px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-[var(--ficap-muted)];
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--ficap-border);
+    background: var(--ficap-surface-sunken);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ficap-ink-muted);
+    white-space: nowrap;
   }
   .table tbody td {
-    @apply border-b border-[#eef0f4] px-3 py-2 align-top text-[var(--ficap-text)];
+    border-bottom: 1px solid #eef0f4;
+    padding: 0.625rem 0.75rem;
+    vertical-align: top;
+    color: var(--ficap-ink);
+    line-height: 1.5;
   }
   .table tbody tr:hover {
-    @apply bg-[#fbfcfd];
+    background: #fbfcfd;
   }
   .table tbody tr:last-child td {
-    @apply border-b-0;
+    border-bottom: 0;
   }
+
+  /* ---------------------------------------------------------------- badges */
   .badge {
-    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--ficap-border);
+    background: var(--ficap-surface-sunken);
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ficap-ink-muted);
+    white-space: nowrap;
   }
   .badge-neutral {
-    @apply border-slate-200 bg-slate-50 text-slate-600;
+    border-color: var(--ficap-border);
+    background: var(--ficap-surface-sunken);
+    color: var(--ficap-ink-muted);
   }
   .badge-navy {
-    @apply border-navy-200 bg-navy-50 text-navy-700;
+    border-color: #c9d5e6;
+    background: #eef3f9;
+    color: #1b3352;
   }
   .badge-green {
-    @apply border-emerald-200 bg-emerald-50 text-emerald-700;
+    border-color: #b9ddd6;
+    background: #ecf7f4;
+    color: #0a5b52;
   }
   .badge-amber {
-    @apply border-amber-200 bg-amber-50 text-amber-800;
+    border-color: #e8d3a8;
+    background: #fdf6e7;
+    color: #7a4d05;
   }
   .badge-red {
-    @apply border-rose-200 bg-rose-50 text-rose-800;
+    border-color: #e4bfc9;
+    background: #fcf0f3;
+    color: #8e1230;
   }
   .badge-slate {
-    @apply border-slate-300 bg-slate-100 text-slate-700;
+    border-color: #d6dae2;
+    background: #f2f4f7;
+    color: #3f4756;
   }
+  /* A record that was never measured: hollow, dashed, neutral. */
+  .badge-unassessed {
+    border-style: dashed;
+    border-color: var(--ficap-border-strong);
+    background: transparent;
+    color: var(--ficap-ink-muted);
+  }
+
+  /* ---------------------------------------------------------------- key/value */
   .kv {
-    @apply grid grid-cols-[minmax(120px,180px)_1fr] gap-x-4 gap-y-1.5 text-xs;
+    display: grid;
+    grid-template-columns: minmax(120px, 180px) 1fr;
+    column-gap: 1rem;
+    row-gap: 0.375rem;
+    font-size: 0.75rem;
   }
   .kv dt {
-    @apply font-medium text-[var(--ficap-muted)];
+    font-weight: 500;
+    color: var(--ficap-ink-muted);
   }
   .kv dd {
-    @apply text-[var(--ficap-text)];
+    color: var(--ficap-ink);
   }
   .link {
-    @apply font-medium text-seal-700 underline decoration-seal-600/30 underline-offset-2 hover:decoration-seal-600;
+    font-weight: 500;
+    color: var(--ficap-accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(14, 124, 113, 0.35);
+    text-underline-offset: 3px;
   }
+  .link:hover {
+    text-decoration-color: var(--ficap-accent);
+  }
+
+  /* ---------------------------------------------------------------- navigation */
   .nav-item {
-    @apply flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-navy-100/80 transition-colors hover:bg-white/10 hover:text-white;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--r-sm);
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgba(247, 248, 250, 0.72);
+    transition: background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
   }
   .nav-item-active {
-    @apply bg-white/15 text-white;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+  .nav-item-active::before {
+    content: '';
+    position: absolute;
+    left: -0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 1rem;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--ficap-warm);
   }
   .nav-section {
-    @apply px-2.5 pb-1 pt-4 text-2xs font-semibold uppercase tracking-widest text-navy-300/70;
+    padding: 1rem 0.625rem 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(169, 180, 198, 0.75);
   }
+
+  /* ---------------------------------------------------------------- prose */
   .prose-note {
-    @apply text-xs leading-relaxed text-[var(--ficap-muted)];
+    font-size: 0.75rem;
+    line-height: 1.65;
+    color: var(--ficap-ink-muted);
   }
   .code {
-    @apply rounded bg-slate-900 px-2 py-1 font-mono text-2xs text-slate-100;
+    border-radius: var(--r-xs);
+    background: var(--ficap-field-deep);
+    padding: 0.125rem 0.375rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.6875rem;
+    color: #e6edf6;
   }
+  .hairline {
+    height: 1px;
+    background: var(--ficap-border);
+  }
+}
+
+/* ---------------------------------------------------------------- utilities */
+
+/* The single permitted gradient in the product: a legibility scrim behind text
+   on the navy field. It raises contrast; it is not decoration (design.md §12). */
+.field-scrim {
+  background:
+    radial-gradient(120% 80% at 78% 18%, rgba(56, 96, 138, 0.5) 0%, rgba(11, 27, 46, 0) 62%),
+    var(--ficap-field);
+}
+
+.field-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
 }
 
 .scrollbar-thin {
@@ -155,19 +570,17 @@ body {
   }
 }
 
-
 /* ---------------------------------------------------------------------------
    Accessibility scaffolding
    --------------------------------------------------------------------------- */
 
-/* Keyboard users must be able to jump past the navigation. */
 .skip-link {
   position: absolute;
   left: -9999px;
   top: 0;
   z-index: 100;
-  border-radius: 0 0 0.375rem 0;
-  background: var(--ficap-navy-900, #0b1c33);
+  border-radius: 0 0 var(--r-xs) 0;
+  background: var(--ficap-field-deep);
   padding: 0.5rem 0.875rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -179,7 +592,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Respect the operating system's reduced motion preference. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -191,8 +603,7 @@ body {
   }
 }
 
-/* A visible focus ring for every interactive element, never removed. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--ficap-focus, #1d4ed8);
+  outline: 2px solid var(--ficap-focus);
   outline-offset: 2px;
 }

@@ -298,19 +298,70 @@ export async function login(
   return { status: 'ok', token, csrf, user: publicUser };
 }
 
+/** Why a persona shortcut was refused. Distinguishes the two gates for the caller. */
+export type PersonaShortcutDenial = 'not_demo_mode' | 'not_demo_actor' | 'not_demo_target';
+
+export const PERSONA_SHORTCUT_DENIAL_REASON: Record<PersonaShortcutDenial, string> = {
+  not_demo_mode:
+    'The demonstration sign-in shortcut is disabled on this deployment. Sign in with your password and authenticator code.',
+  not_demo_actor: 'Only a demonstration account may switch role. Sign out and sign in with the target account.',
+  not_demo_target: 'That account is not a demonstration account and cannot be assumed.',
+};
+
+/**
+ * Demonstration-only persona shortcut.
+ *
+ * This function mints a session with `mfa_verified = true`, so it is the most
+ * dangerous entry point in the authentication module. It is therefore gated
+ * twice, and both gates are enforced here rather than in the calling screen:
+ *
+ *  1. `demoMode()` must be on. In any other mode the shortcut does not exist,
+ *     whatever the UI happens to render.
+ *  2. The target row must carry `is_demo = true`, and when the call is a
+ *     role switch (`acting` supplied) the acting session must also be a
+ *     demonstration account. Otherwise an institution contact could escalate to
+ *     platform administrator by posting a form.
+ *
+ * The caller is still responsible for the CSRF token on the submitted form.
+ */
 export async function directLoginAsPersona(
   emailOrRole: string,
   context: { ip?: string; userAgent?: string } = {},
-): Promise<{ status: 'ok'; token: string; csrf: string; user: AuthUser } | { status: 'error'; reason: string }> {
+  acting?: { is_demo: boolean; role: string; email: string } | null,
+): Promise<
+  | { status: 'ok'; token: string; csrf: string; user: AuthUser }
+  | { status: 'error'; reason: string; denial?: PersonaShortcutDenial }
+> {
+  if (!demoMode()) {
+    return {
+      status: 'error',
+      denial: 'not_demo_mode',
+      reason: PERSONA_SHORTCUT_DENIAL_REASON.not_demo_mode,
+    };
+  }
+  if (acting && !acting.is_demo) {
+    return {
+      status: 'error',
+      denial: 'not_demo_actor',
+      reason: PERSONA_SHORTCUT_DENIAL_REASON.not_demo_actor,
+    };
+  }
+
   const target = emailOrRole.trim().toLowerCase();
+  if (!target) return { status: 'error', denial: 'not_demo_target', reason: 'No persona was supplied.' };
+
   const user = await withSystem((tx) =>
     tx.queryOne<any>(
-      `SELECT * FROM users WHERE lower(email) = lower($1) OR role = $1 ORDER BY is_demo DESC LIMIT 1`,
+      `SELECT * FROM users WHERE is_demo = true AND (lower(email) = lower($1) OR role = $1) LIMIT 1`,
       [target],
     ),
   );
   if (!user) {
-    return { status: 'error', reason: `No persona found matching "${emailOrRole}"` };
+    return {
+      status: 'error',
+      denial: 'not_demo_target',
+      reason: PERSONA_SHORTCUT_DENIAL_REASON.not_demo_target,
+    };
   }
 
   const token = randomToken(32);
