@@ -11,3 +11,6 @@ next-env.d.ts
 .env.local
 .DS_Store
 /tmp/
+
+# Local Node runtime used only by the REA command line (npm run rea).
+.toolchain/
