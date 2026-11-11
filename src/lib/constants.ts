@@ -1,5 +1,15 @@
 /** Shared enumerations used by forms, validation and reporting. */
 
+/**
+ * Cookie names.
+ *
+ * Declared here, not in `db/context`, because the edge middleware needs them and
+ * importing anything that reaches the database module would pull PGlite into the
+ * edge bundle. `db/context` re-exports them, so there is still one definition.
+ */
+export const SESSION_COOKIE = 'ficap_session';
+export const CSRF_COOKIE = 'ficap_csrf';
+
 export const TEST_METHODS: { key: string; label: string; description: string }[] = [
   {
     key: 'unauthenticated_http',

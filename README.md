@@ -311,6 +311,36 @@ vulnerability finding. The report records how many files were sealed out of how 
 scanned, and states that this is a static inspection — not a penetration test. A missing
 build exits non-zero rather than reporting a clean bundle.
 
+## Demonstration auto-entry
+
+In demonstration mode a visitor is signed in automatically and lands directly on a
+dashboard — no password, no authenticator code, no sign-in screen:
+
+| URL | Lands on |
+|---|---|
+| `/` or any application route | Assessor workspace |
+| `/demo/enter?as=reviewer` | Supervisory review |
+| `/demo/enter?as=approver` | Independent approval |
+| `/demo/enter?as=contact` | Your institution |
+| `/demo/enter?as=admin` | Platform operations |
+
+**Authentication is not removed.** The session created is an ordinary session: same
+cookies, same expiry, same `auth.login` audit row (stage `direct_persona`), and it is
+marked in the header with an *auto-entry* badge so nobody mistakes it for a
+credentialled sign-in.
+
+It is gated three times, independently:
+
+1. the middleware skips auto-entry unless `FICAP_MODE` is `demo` (or unset);
+2. the `/demo/enter` route handler re-checks and otherwise redirects to `/login`;
+3. `directLoginAsPersona` refuses outside demonstration mode, and refuses any account
+   not flagged `is_demo`.
+
+With `FICAP_MODE=live`, `/` and every other route redirect to the sign-in screen, the
+demonstration shortcut disappears from the login page, and `/demo/enter` issues no
+session at all. Set `FICAP_DEMO_AUTO_ENTER=0` to keep the sign-in screen in
+demonstration mode. The real flow remains at `/login` at all times.
+
 ## Verifying sign-in
 
 ```bash

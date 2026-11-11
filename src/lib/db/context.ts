@@ -5,8 +5,10 @@ import { buildAccessScope, type Permission, type SessionUser } from '@/lib/rbac'
 import type { AccessScope } from '@/lib/db/pool';
 import { ForbiddenError, UnauthorizedError } from '@/lib/errors';
 
-export const SESSION_COOKIE = 'ficap_session';
-export const CSRF_COOKIE = 'ficap_csrf';
+// Defined in the dependency-free constants module so the edge middleware can use
+// them without importing the database layer; re-exported here for existing callers.
+export { SESSION_COOKIE, CSRF_COOKIE } from '@/lib/constants';
+import { SESSION_COOKIE as SESSION_COOKIE_NAME } from '@/lib/constants';
 
 /** Session context resolved for a server component or route handler. */
 export type RequestContext = {
@@ -29,7 +31,7 @@ export async function getRequestContext(options: { required?: boolean } = {}): P
   await ensureDatabaseReady();
   const cookieStore = await cookies();
   const headerStore = await headers();
-  const token = cookieStore.get(SESSION_COOKIE)?.value ?? '';
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? '';
   if (!token) {
     if (options.required === false) return null;
     throw new UnauthorizedError();

@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { forwardedHostRepair } from '@/lib/proxy-origin';
+import {
+  autoEntryUrl,
+  demoAutoEntryEnabled,
+  shouldAutoEnter,
+} from '@/lib/demo/auto-entry';
+import { SESSION_COOKIE } from '@/lib/constants';
 
 /**
  * Edge middleware: coarse, per-client request throttling plus forwarded-host
@@ -69,9 +75,25 @@ function proceed(request: NextRequest) {
 }
 
 export function middleware(request: NextRequest) {
-  if (disabled()) return proceed(request);
-
   const { pathname } = request.nextUrl;
+
+  // Demonstration auto-entry. In demonstration mode an anonymous visitor is sent
+  // through a real session-creation step instead of the sign-in screen, so the
+  // dashboards are reachable in one hop. In live mode this is inert, and the
+  // route handler and domain function each re-check independently. See
+  // `src/lib/demo/auto-entry.ts` for why a demo build still uses real sessions.
+  if (
+    shouldAutoEnter({
+      pathname,
+      search: request.nextUrl.search,
+      hasSessionCookie: request.cookies.has(SESSION_COOKIE),
+      enabled: demoAutoEntryEnabled(),
+    })
+  ) {
+    return NextResponse.redirect(new URL(autoEntryUrl(pathname, request.nextUrl.search), request.url));
+  }
+
+  if (disabled()) return proceed(request);
   const method = request.method.toUpperCase();
   const rule = RULES.find((candidate) => candidate.match(pathname, method));
   if (!rule) return proceed(request);

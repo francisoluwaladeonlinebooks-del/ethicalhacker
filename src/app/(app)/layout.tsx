@@ -8,6 +8,7 @@ import { CSRF_COOKIE } from '@/lib/db/context';
 import { cookies } from 'next/headers';
 import { logoutAction } from '@/app/actions/auth';
 import { TopNavPersonaSwitcher, SidebarPersonaSwitcher } from '@/components/persona-switcher';
+import { demoAutoEntryEnabled } from '@/lib/demo/auto-entry';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : { openFindings: 0, queuedJobs: 0, unapprovedReports: 0 };
 
   const csrf = (await cookies()).get(CSRF_COOKIE)?.value ?? '';
+  // Shown so a viewer never mistakes a demonstration session for a
+  // credentialled sign-in. See src/lib/demo/auto-entry.ts.
+  const autoEntry = demoAutoEntryEnabled();
 
   const groups: NavGroup[] = [
     {
@@ -186,6 +190,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <span aria-hidden="true" className="text-[0.5rem] leading-none">●</span>
                 {ctx.mode === 'demo' ? 'Demonstration data' : 'Live data'}
               </span>
+
+              {autoEntry ? (
+                <span
+                  className="hidden items-center gap-1.5 rounded-pill border border-dashed border-[var(--ficap-border-strong)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ficap-ink-faint)] sm:inline-flex"
+                  title="This demonstration build creates a session automatically. No password or authenticator code was entered. Set FICAP_MODE=live to require both."
+                >
+                  <span aria-hidden="true">◇</span> Auto-entry
+                </span>
+              ) : null}
 
               <span className="hidden items-center gap-2 text-2xs text-[var(--ficap-ink-faint)] sm:flex">
                 <span aria-hidden="true">·</span> Assessment window enforced

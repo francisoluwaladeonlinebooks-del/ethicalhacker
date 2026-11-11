@@ -17,3 +17,7 @@ next-env.d.ts
 
 # REA verification report (regenerated on demand; contains build digests)
 .rea-verify/
+
+# Python bytecode from scripts/verify-signin.py
+__pycache__/
+*.pyc
