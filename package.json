@@ -2,7 +2,7 @@
   "name": "ficap",
   "version": "1.0.0",
   "private": true,
-  "description": "FICAP — Financial Institution Cybersecurity Assurance Platform (CBN supervisory application security assessment)",
+  "description": "FICAP \u2014 Financial Institution Cybersecurity Assurance Platform (CBN supervisory application security assessment)",
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
     "build": "NODE_ENV=production next build",
@@ -17,7 +17,8 @@
     "rea": "node scripts/rea.mjs",
     "rea:doctor": "node scripts/rea.mjs doctor",
     "rea:mcp": "node scripts/rea.mjs mcp",
-    "rea:toolchain": "node scripts/rea-toolchain.mjs"
+    "rea:toolchain": "node scripts/rea-toolchain.mjs",
+    "rea:verify": "node scripts/rea-verify.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.13",

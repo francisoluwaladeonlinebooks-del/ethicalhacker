@@ -14,3 +14,6 @@ next-env.d.ts
 
 # Local Node runtime used only by the REA command line (npm run rea).
 .toolchain/
+
+# REA verification report (regenerated on demand; contains build digests)
+.rea-verify/
