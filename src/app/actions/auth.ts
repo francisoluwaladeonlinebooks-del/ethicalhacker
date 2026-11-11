@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { getRequestContext } from '@/lib/db/context';
-import { demoMode, login, revokeSession, verifyMfa } from '@/lib/domain/auth';
+import { demoMode, login, revokeSession, verifyMfa, directLoginAsPersona } from '@/lib/domain/auth';
 import {
   clearAuthCookies,
   clearPendingCookie,
@@ -25,6 +25,10 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   const meta = await requestMeta();
   const outcome = await login(email, password, meta);
 
+  if (outcome.status === 'ok') {
+    await setSessionCookies(outcome.token, outcome.csrf);
+    redirect('/');
+  }
   if (outcome.status === 'mfa_required') {
     await setPendingCookie(outcome.token);
     redirect('/login/mfa');
@@ -64,11 +68,7 @@ export async function verifyMfaAction(_prev: MfaState, formData: FormData): Prom
   if (outcome.status === 'ok') {
     await setSessionCookies(outcome.token, outcome.csrf);
     await clearPendingCookie();
-    // Confirm the session cookie actually survives the round trip. If the
-    // browser drops it (third-party cookie blocking in an embedded view), the
-    // user is told exactly that instead of being sent back to the sign-in page
-    // with no explanation.
-    redirect('/login/complete');
+    redirect('/');
   }
   if (outcome.status === 'locked') return { error: outcome.reason };
 
@@ -89,6 +89,29 @@ export async function verifyMfaAction(_prev: MfaState, formData: FormData): Prom
   // The session itself is gone (expired or revoked): a fresh sign-in is required.
   await clearPendingCookie();
   redirect(withMessage('/login', { error: outcome.reason }));
+}
+
+export async function directPersonaLoginAction(formData: FormData): Promise<void> {
+  const persona = String(formData.get('persona') ?? formData.get('email') ?? '').trim();
+  if (!persona) redirect('/login');
+  const meta = await requestMeta();
+  const outcome = await directLoginAsPersona(persona, meta);
+  if (outcome.status === 'ok') {
+    await setSessionCookies(outcome.token, outcome.csrf);
+    redirect('/');
+  }
+  redirect(withMessage('/login', { error: outcome.reason }));
+}
+
+export async function switchPersonaAction(formData: FormData): Promise<void> {
+  const persona = String(formData.get('persona') ?? formData.get('email') ?? '').trim();
+  if (!persona) redirect('/');
+  const meta = await requestMeta();
+  const outcome = await directLoginAsPersona(persona, meta);
+  if (outcome.status === 'ok') {
+    await setSessionCookies(outcome.token, outcome.csrf);
+  }
+  redirect('/');
 }
 
 export async function cancelMfaAction(): Promise<void> {

@@ -1,0 +1,7 @@
+{
+  "name": "FICAP - Financial Institution Cybersecurity Assurance Platform",
+  "description": "Authorised, scope-bound cybersecurity assessment and supervisory risk intelligence for supervised financial institutions.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -7,6 +7,7 @@ import { SideNav, type NavGroup } from '@/components/nav';
 import { CSRF_COOKIE } from '@/lib/db/context';
 import { cookies } from 'next/headers';
 import { logoutAction } from '@/app/actions/auth';
+import { TopNavPersonaSwitcher, SidebarPersonaSwitcher } from '@/components/persona-switcher';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       title: 'Workspace',
       items: [
         { href: '/', label: HOME_LABELS[ctx.user.role] ?? 'Overview' },
+        { href: '/ai-analyst', label: 'AI Security Analyst (LLM)' },
         ...(can(ctx.user, 'institution:portfolio') ? [{ href: '/analytics', label: 'Supervisory analytics' }] : []),
       ],
     },
@@ -135,6 +137,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="rounded-md border border-white/10 bg-white/5 p-2.5">
             <p className="truncate text-2xs font-semibold text-white">{ctx.user.name}</p>
             <p className="mt-0.5 truncate text-[10px] text-navy-200">{ctx.user.role.replace(/_/g, ' ')}</p>
+            <SidebarPersonaSwitcher currentRole={ctx.user.role} />
             <form action={logoutAction} className="mt-2">
               <button type="submit" className="w-full rounded border border-white/15 px-2 py-1 text-2xs font-medium text-navy-100 hover:bg-white/10">
                 Sign out
@@ -145,7 +148,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white px-4 py-2.5 lg:px-6">
+        <header className="no-print sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--ficap-border)] bg-white px-4 py-2.5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="lg:hidden text-xs font-semibold tracking-tight text-navy-900">FICAP</span>
             <span
@@ -158,9 +161,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Assessment window enforced · evidence encrypted · audit append-only
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-2xs text-[var(--ficap-muted)] md:inline">
-              {ctx.user.email} · session expires {new Date(ctx.session.expires_at).toISOString().slice(11, 16)}Z
+          <div className="flex items-center gap-2 sm:gap-3">
+            <TopNavPersonaSwitcher currentRole={ctx.user.role} />
+            <span className="hidden text-2xs text-[var(--ficap-muted)] md:inline border-l border-slate-200 pl-3">
+              {ctx.user.email}
             </span>
             <Link href="/" className="btn btn-secondary btn-xs">Overview</Link>
           </div>

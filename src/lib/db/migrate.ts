@@ -170,13 +170,38 @@ export async function seedFrameworks(tx: Tx): Promise<void> {
 }
 
 export async function migrate(): Promise<void> {
+  console.log('[ficap-migrate] starting database migration...');
   await withSystem(async (tx) => {
+    console.log('[ficap-migrate] 1/5 applying schema...');
     await applySchema(tx);
+    console.log('[ficap-migrate] 2/5 seeding role permissions...');
     await seedRolePermissions(tx);
+    console.log('[ficap-migrate] 3/5 seeding settings...');
     await seedSettings(tx);
+    console.log('[ficap-migrate] 4/5 seeding engines...');
     await seedEngines(tx);
+    console.log('[ficap-migrate] 5/5 seeding frameworks...');
     await seedFrameworks(tx);
+    console.log('[ficap-migrate] baseline migration completed.');
   });
+
+  const mode = (process.env.FICAP_MODE ?? 'demo').toLowerCase();
+  if (mode === 'demo') {
+    try {
+      const userCount = await withSystem(async (tx) => {
+        const row = await tx.queryOne<{ count: string }>('SELECT count(*)::text AS count FROM users WHERE email = $1', ['admin@cbn.gov.ng']);
+        return Number(row?.count ?? 0);
+      });
+      if (userCount === 0) {
+        console.log('[ficap-migrate] Demo estate empty; auto-seeding demonstration personas and records...');
+        const { seedDemoData } = await import('@/lib/demo/seed');
+        await seedDemoData();
+        console.log('[ficap-migrate] Demonstration estate seeded successfully.');
+      }
+    } catch (seedErr) {
+      console.error('[ficap-migrate] Error checking/seeding demo data:', seedErr);
+    }
+  }
 }
 
 let readyPromise: Promise<void> | null = null;
@@ -186,6 +211,7 @@ export function ensureDatabaseReady(): Promise<void> {
   if (!readyPromise) {
     readyPromise = migrate().catch((error) => {
       readyPromise = null;
+      console.error('[ficap-migrate] ensureDatabaseReady failed:', error);
       throw error;
     });
   }

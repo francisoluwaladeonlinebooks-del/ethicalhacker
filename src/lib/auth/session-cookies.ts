@@ -76,8 +76,12 @@ export async function cookiePolicy(): Promise<CookiePolicy> {
       return '';
     }
   };
+  const isCloudHost = host.includes('.run.app') || host.includes('.e2b.app') || host.includes('aistudio');
   const https =
-    forwardedProto === 'https' || schemeOf(origin) === 'https:' || schemeOf(referer) === 'https:';
+    forwardedProto === 'https' ||
+    schemeOf(origin) === 'https:' ||
+    schemeOf(referer) === 'https:' ||
+    isCloudHost;
 
   const secureOverride = parseBoolean(process.env.FICAP_COOKIE_SECURE);
   const secure = secureOverride ?? https;
@@ -87,8 +91,9 @@ export async function cookiePolicy(): Promise<CookiePolicy> {
   if (sameSiteOverride === 'none' || sameSiteOverride === 'strict' || sameSiteOverride === 'lax') {
     sameSite = sameSiteOverride as SameSitePolicy;
   } else {
-    // Only widen automatically for a genuinely cross-site request over HTTPS.
-    sameSite = crossSite && secure ? 'none' : 'lax';
+    // Over HTTPS (especially embedded in iframes like AI Studio), default to SameSite=None
+    // so cookies are not withheld by browsers on cross-site parent frames.
+    sameSite = secure ? 'none' : 'lax';
   }
 
   // Browsers reject SameSite=None without Secure, so fall back rather than

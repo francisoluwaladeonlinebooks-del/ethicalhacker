@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description:
     'Authorised, scope-bound cybersecurity assessment and supervisory risk intelligence for supervised financial institutions.',
   robots: { index: false, follow: false },
+  openGraph: {
+    title: 'FICAP — Financial Institution Cybersecurity Assurance Platform',
+    description:
+      'Authorised, scope-bound cybersecurity assessment and supervisory risk intelligence for supervised financial institutions.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

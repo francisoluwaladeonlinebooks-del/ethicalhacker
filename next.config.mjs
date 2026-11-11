@@ -27,7 +27,14 @@
  * Cross-site submissions still cannot act on a session: `Lax` cookies are not
  * sent on a cross-site POST, and every action re-checks its CSRF token.
  */
-const defaultAllowedOrigins = ['*.e2b.app', 'localhost:3000', '127.0.0.1:3000'];
+const defaultAllowedOrigins = [
+  '*.e2b.app',
+  'localhost:3000',
+  '127.0.0.1:3000',
+  '*.run.app',
+  '*.google.com',
+  '*.aistudio.google.com',
+];
 const allowedOrigins = [
   ...new Set([
     ...defaultAllowedOrigins,
@@ -35,8 +42,8 @@ const allowedOrigins = [
   ]),
 ];
 
-const frameAncestors = (process.env.FICAP_FRAME_ANCESTORS ?? '').trim();
-const strictFraming = frameAncestors === '' || frameAncestors.toLowerCase() === 'none';
+const frameAncestors = (process.env.FICAP_FRAME_ANCESTORS ?? '*').trim();
+const strictFraming = frameAncestors.toLowerCase() === 'none';
 const framingValue = strictFraming ? "'none'" : frameAncestors;
 
 const contentSecurityPolicy = [
@@ -53,6 +60,7 @@ const contentSecurityPolicy = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ['@electric-sql/pglite', 'pdfkit', 'exceljs'],

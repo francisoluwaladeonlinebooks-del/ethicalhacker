@@ -56,6 +56,7 @@ export function sessionTokenHash(token: string): string {
 }
 
 export type LoginOutcome =
+  | { status: 'ok'; token: string; csrf: string; user: AuthUser }
   | { status: 'mfa_required'; token: string; csrf: string; user: AuthUser; demoCode?: string }
   | { status: 'invalid'; reason: string; remainingAttempts?: number }
   | { status: 'locked'; reason: string; lockedUntil: string }
@@ -294,7 +295,67 @@ export async function login(
       demoCode: demoMode() && user.is_demo && user.mfa_secret_enc ? totpAt(decryptFromBase64(user.mfa_secret_enc), totpStepAt()) : undefined,
     };
   }
-  return { status: 'mfa_required', token, csrf, user: publicUser };
+  return { status: 'ok', token, csrf, user: publicUser };
+}
+
+export async function directLoginAsPersona(
+  emailOrRole: string,
+  context: { ip?: string; userAgent?: string } = {},
+): Promise<{ status: 'ok'; token: string; csrf: string; user: AuthUser } | { status: 'error'; reason: string }> {
+  const target = emailOrRole.trim().toLowerCase();
+  const user = await withSystem((tx) =>
+    tx.queryOne<any>(
+      `SELECT * FROM users WHERE lower(email) = lower($1) OR role = $1 ORDER BY is_demo DESC LIMIT 1`,
+      [target],
+    ),
+  );
+  if (!user) {
+    return { status: 'error', reason: `No persona found matching "${emailOrRole}"` };
+  }
+
+  const token = randomToken(32);
+  const csrf = randomToken(24);
+  await withSystem(async (tx) => {
+    await tx.query(
+      `INSERT INTO sessions (user_id, token_hash, csrf_token, mfa_verified, ip, user_agent, expires_at, idle_expires_at)
+       VALUES ($1,$2,$3,true,$4,$5,$6,$7)`,
+      [
+        user.id,
+        sessionTokenHash(token),
+        csrf,
+        context.ip ?? null,
+        context.userAgent ?? null,
+        nowIso(SESSION_ABSOLUTE_MINUTES),
+        nowIso(SESSION_IDLE_MINUTES),
+      ],
+    );
+    await tx.query('UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login_at = now() WHERE id = $1', [user.id]);
+  });
+
+  await recordAudit({
+    action: 'auth.login',
+    entityType: 'user',
+    entityId: user.id,
+    outcome: 'success',
+    institutionId: user.institution_id,
+    actor: { id: user.id, email: user.email, role: user.role },
+    metadata: { stage: 'direct_persona', role: user.role },
+    ip: context.ip,
+    userAgent: context.userAgent,
+  });
+
+  const publicUser: AuthUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    institution_id: user.institution_id,
+    job_title: user.job_title,
+    mfa_enrolled_at: user.mfa_enrolled_at,
+    is_demo: user.is_demo,
+  };
+
+  return { status: 'ok', token, csrf, user: publicUser };
 }
 
 export function demoMode(): boolean {

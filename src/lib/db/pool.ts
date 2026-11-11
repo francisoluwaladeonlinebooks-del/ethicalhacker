@@ -56,10 +56,45 @@ export async function getDb(): Promise<PGlite> {
     g.__ficapDbPromise = (async () => {
       const dir = dataDir();
       fs.mkdirSync(dir, { recursive: true });
-      const db = await PGlite.create(dir);
-      g.__ficapDb = db;
-      return db;
-    })();
+      const pidFile = path.join(dir, 'postmaster.pid');
+      if (fs.existsSync(pidFile)) {
+        try {
+          fs.unlinkSync(pidFile);
+        } catch {
+          // ignore unlink error
+        }
+      }
+      try {
+        const db = await PGlite.create(dir);
+        g.__ficapDb = db;
+        return db;
+      } catch (err: any) {
+        console.error('[ficap-db] PGlite failed on directory, cleaning postmaster.pid and retrying:', err);
+        if (fs.existsSync(pidFile)) {
+          try {
+            fs.unlinkSync(pidFile);
+          } catch {}
+        }
+        try {
+          const db = await PGlite.create(dir);
+          g.__ficapDb = db;
+          return db;
+        } catch (retryErr) {
+          console.error('[ficap-db] Retry failed, recreating data directory:', retryErr);
+          try {
+            fs.rmSync(dir, { recursive: true, force: true });
+            fs.mkdirSync(dir, { recursive: true });
+          } catch {}
+          const db = await PGlite.create(dir);
+          g.__ficapDb = db;
+          return db;
+        }
+      }
+    })().catch((err) => {
+      g.__ficapDbPromise = undefined;
+      console.error('[ficap-db] Failed to initialize PGlite:', err);
+      throw err;
+    });
   }
   return g.__ficapDbPromise;
 }

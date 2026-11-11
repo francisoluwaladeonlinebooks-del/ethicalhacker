@@ -4,8 +4,8 @@
   "private": true,
   "description": "FICAP — Financial Institution Cybersecurity Assurance Platform (CBN supervisory application security assessment)",
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "next build",
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "NODE_ENV=production next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx scripts/migrate.ts",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.13",
+    "@huggingface/inference": "^4.13.32",
     "@pandatix/js-cvss": "0.4.4",
     "cvss4": "1.0.7",
     "exceljs": "4.4.0",
